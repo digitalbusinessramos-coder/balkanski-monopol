@@ -1,0 +1,274 @@
+/* Bosanski monopol. Jedna svijetla tema po izboru: ploča iz kutije na stolu. */
+:root{
+  --table:#d9d4c7;      /* stol ispod ploče */
+  --board:#cfe5cf;      /* blago zelena ploča */
+  --line:#141414;
+  --ink:#141414;
+  --paper:#fbfaf4;
+  --card:#e8e1d3;
+  --muted:#6b675f;
+  --red:#d2242a;
+  --f-board:"League Spartan","Futura","Century Gothic","Trebuchet MS",sans-serif;
+  --f-text:"Source Sans 3","Segoe UI",Arial,sans-serif;
+  --g1:#8a4b2d; --g2:#a9d8ef; --g3:#d63c8f; --g4:#f08a24; --g5:#d8232a; --g6:#f4dc1a; --g7:#1f9a4b; --g8:#1f4fa3;
+  color-scheme:light;
+}
+html{background:var(--table)}
+body{background:var(--table);color:var(--ink);font-family:var(--f-text);font-size:15px;line-height:1.45;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
+.board-wrap{position:relative;width:100%;aspect-ratio:1;max-width:100%}
+.board{position:absolute;left:0;top:0;width:900px;height:900px;transform-origin:0 0;transform:scale(var(--s,1));
+  background:var(--board);border:3px solid var(--line);box-shadow:0 10px 24px rgba(0,0,0,.25);
+  display:grid;grid-template-columns:117px repeat(9,74px) 117px;grid-template-rows:117px repeat(9,74px) 117px;box-sizing:content-box}
+.cell{position:relative;outline:1px solid var(--line);overflow:hidden;background:var(--board)}
+.inner{position:absolute;left:50%;top:50%;width:74px;height:117px;transform:translate(-50%,-50%) rotate(var(--r,0deg));
+  display:flex;flex-direction:column;align-items:center;text-align:center;font-family:var(--f-board);box-sizing:border-box}
+.band{width:100%;height:24px;border-bottom:1px solid var(--line);flex:none;position:relative;display:flex;align-items:center;justify-content:center;gap:2px}
+.nm{font-weight:700;font-size:10.5px;line-height:1.05;text-transform:uppercase;margin-top:6px;padding:0 3px;letter-spacing:.02em}
+.pr{margin-top:auto;margin-bottom:6px;font-size:10.5px;font-weight:600}
+.ico{width:42px;height:42px;margin-top:4px;flex:none}
+.ico.sm{width:34px;height:34px}
+.corner .inner{width:117px;height:117px;justify-content:center;gap:2px;padding:4px 0}
+.corner .big{font-weight:900;font-size:14px;line-height:1;text-transform:uppercase;letter-spacing:.02em}
+.corner .small{font-size:9px;font-weight:600;line-height:1.15;padding:0 8px}
+/* kućice i hotel kao igraći dijelovi */
+.house{width:13px;height:13px;background:#1f8f3a;clip-path:polygon(50% 0,100% 42%,100% 100%,0 100%,0 42%);box-shadow:inset 0 -3px 0 rgba(0,0,0,.25)}
+.hotel{width:24px;height:14px;background:#c4161c;clip-path:polygon(50% 0,100% 35%,100% 100%,0 100%,0 35%);box-shadow:inset 0 -3px 0 rgba(0,0,0,.25)}
+.owner{position:absolute;left:0;right:0;bottom:0;height:5px}
+/* figurice */
+.tok{position:absolute;width:28px;height:28px;filter:drop-shadow(1px 2px 1px rgba(0,0,0,.45));z-index:3}
+/* centar ploče */
+.center{grid-column:2/11;grid-row:2/11;position:relative;outline:1px solid var(--line)}
+.art{position:absolute;inset:0;width:100%;height:100%}
+.deck{position:absolute;width:150px;height:96px;border:0;z-index:2;display:grid;place-items:center;cursor:pointer;background:none;padding:0;font:inherit}
+.deck .stack{width:136px;height:84px;border:1.5px solid var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  font-family:var(--f-board);font-weight:900;font-size:16px;letter-spacing:.08em;box-shadow:3px 3px 0 #fff,4px 4px 0 var(--line),6px 6px 0 #fff,7px 7px 0 var(--line)}
+.deck.sansa{left:30px;bottom:26px;transform:rotate(-7deg) scale(.82)}
+.deck.sansa .stack{background:#f6a33a}
+.deck.izn{right:30px;bottom:26px;transform:rotate(6deg) scale(.82)}
+.deck.izn .stack{background:#86c5e3}
+.deck:focus-visible{outline:3px solid var(--red);outline-offset:4px}
+.deck .q{font-size:30px;line-height:.8;color:var(--red)}
+.cty{width:30px;height:30px;margin-top:auto;opacity:.9}
+.cty+.pr{margin-top:4px}
+.dice-on-board{position:absolute;left:470px;top:478px;display:flex;gap:8px;transform:rotate(-12deg) scale(.85)}
+
+/* kockice */
+.die{width:38px;height:38px;background:#fffefa;border:1.5px solid #222;border-radius:7px;box-shadow:inset -3px -3px 0 #ddd8cc,2px 3px 0 rgba(0,0,0,.25);
+  display:grid;grid-template:repeat(3,1fr)/repeat(3,1fr);padding:5px;box-sizing:border-box}
+.die i{width:7px;height:7px;border-radius:50%;background:#111;place-self:center;visibility:hidden}
+.die i.on{visibility:visible}
+
+/* bočni stol */
+.side{background:var(--paper);border:2px solid var(--line);display:flex;flex-direction:column}
+.side h3{margin:0;font-family:var(--f-board);font-size:12px;letter-spacing:.14em;text-transform:uppercase;padding:8px 12px;border-bottom:1px solid var(--line);background:#efece2}
+.pl{display:grid;grid-template-columns:30px 1fr auto;gap:10px;align-items:center;padding:9px 12px;border-bottom:1px solid #cfcabb}
+.pl .n{font-weight:700;overflow-wrap:anywhere}
+.pl .m{font-family:var(--f-board);font-weight:700;font-variant-numeric:tabular-nums}
+.pl .props{grid-column:2/4;display:flex;gap:3px;margin-top:-4px}
+.pl .props span{width:10px;height:14px;border:1px solid var(--line)}
+.pl.active{background:#fff6c9;box-shadow:inset 4px 0 0 var(--red)}
+.turn{padding:12px;display:flex;flex-direction:column;gap:10px}
+.turn .status{font-weight:600}
+.turn .dice{display:flex;gap:10px;align-items:center}
+.btns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.btn{min-height:46px;border:2px solid var(--line);background:#fff;font-family:var(--f-board);font-weight:800;font-size:14px;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;color:var(--ink);padding:6px 8px;border-radius:3px;box-shadow:0 3px 0 var(--line)}
+.btn:active{transform:translateY(2px);box-shadow:0 1px 0 var(--line)}
+.btn.primary{background:var(--red);color:#fff}
+.btn.wide{grid-column:1/3}
+.btn:focus-visible{outline:3px solid #1f4fa3;outline-offset:2px}
+.log{font-size:13px;color:#3b3934;padding:10px 12px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:3px}
+.deed{width:250px;background:#fffef9;border:1px solid #bbb;padding:10px;box-shadow:2px 4px 10px rgba(0,0,0,.18);font-family:var(--f-board);box-sizing:border-box}
+.deed .in{border:1.5px solid var(--line);padding:0 0 10px}
+.deed .hd{margin:6px;border:1.5px solid var(--line);text-align:center;padding:6px 4px 8px;color:#fff}
+.deed .hd small{display:block;font-size:9px;letter-spacing:.2em;font-weight:700}
+.deed .hd b{display:block;font-size:22px;font-weight:900;text-transform:uppercase;letter-spacing:.03em;line-height:1.05;margin-top:2px}
+.deed .hd.light{color:var(--ink)}
+.deed table{width:calc(100% - 24px);margin:6px 12px 0;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
+.deed td{padding:2px 0}
+.deed td:last-child{text-align:right;font-weight:600}
+.deed .rent1 td{font-size:14px;text-align:center;font-weight:700;padding-bottom:6px}
+.deed hr{border:0;border-top:1px solid var(--line);margin:8px 12px}
+.deed .dnote{font-family:var(--f-text);font-size:11px;line-height:1.3;text-align:center;margin:8px 14px 0;color:#2b2a27}
+/* Šansa / Iznenađenje */
+.chance{width:220px;aspect-ratio:5/7;background:var(--card);
+  background-image:radial-gradient(ellipse at 30% 20%,rgba(255,255,255,.55),transparent 60%),radial-gradient(ellipse at 80% 90%,rgba(120,100,70,.12),transparent 55%);
+  box-shadow:2px 4px 12px rgba(0,0,0,.25);padding:18px 18px 22px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;text-align:center;max-width:100%}
+.chance .t{font-family:var(--f-board);font-weight:800;font-size:19px;letter-spacing:.12em;color:#8f8a82;text-shadow:0 1px 0 #fff}
+.chance .k{font-family:var(--f-board);font-weight:700;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:#4a4740;margin-top:10px}
+.chance .ill{width:54px;height:54px;margin:10px 0 4px;opacity:.85}
+.chance .x{font-size:16px;line-height:1.35;margin:auto 0 0;color:#141414}
+.chance .e{font-weight:700;font-size:16px;margin:14px 0 auto;color:#141414}
+.chance .e b{font-weight:800}
+/* poleđine */
+.back{width:220px;aspect-ratio:5/7;display:grid;place-items:center;box-sizing:border-box;border:10px solid #fffef9;outline:1px solid #bbb;box-shadow:2px 4px 12px rgba(0,0,0,.25);font-family:var(--f-board);font-weight:900;letter-spacing:.1em;font-size:22px;max-width:100%}
+.back.s{background:#f6a33a}.back.i{background:#86c5e3}
+.back div{display:flex;flex-direction:column;align-items:center;gap:6px}
+.back .q{font-size:80px;line-height:.8;color:var(--red);-webkit-text-stroke:2px var(--line)}
+
+/* okretanje kartice preko ploče */
+.stage{position:absolute;inset:0;display:grid;place-items:center;z-index:10;background:rgba(20,20,20,.35);perspective:1100px}
+.stage .flip{position:relative;width:220px;aspect-ratio:5/7;transform-style:preserve-3d;animation:draw .9s cubic-bezier(.2,.7,.2,1) forwards}
+.stage .flip>*{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;width:100%}
+.stage .flip .back{transform:rotateY(180deg)}
+@keyframes draw{0%{transform:translate(-160px,-160px) scale(.55) rotateZ(-45deg) rotateY(180deg)}55%{transform:translate(0,0) scale(1.05) rotateZ(0) rotateY(180deg)}100%{transform:scale(1.25) rotateY(0)}}
+@media (prefers-reduced-motion:reduce){.stage .flip{animation:none;transform:scale(1.25)}}
+.stage .close{position:absolute;bottom:18px;left:50%;transform:translateX(-50%)}
+
+/* ===== Igra: dodatni stilovi ===== */
+*{box-sizing:border-box}
+body{padding-block:0 0}
+button{font:inherit;color:inherit}
+.cell{border:0;padding:0;margin:0;cursor:pointer;font:inherit;color:var(--ink)}
+.cell:focus-visible{outline:3px solid #1f4fa3;outline-offset:-3px;z-index:2}
+.cell.here{box-shadow:inset 0 0 0 3px var(--red)}
+.inner .owner{position:absolute;left:0;right:0;bottom:0;height:7px}
+.mort{position:absolute;left:50%;top:58%;transform:translate(-50%,-50%) rotate(-30deg);font:800 9px var(--f-board);letter-spacing:.08em;color:var(--red);border:2px solid var(--red);padding:2px 4px;background:rgba(255,255,255,.85)}
+.tokens{position:absolute;inset:0;pointer-events:none;z-index:5}
+.tok{position:absolute;left:0;top:0;width:36px;height:36px;transition:transform .22s ease-out;filter:drop-shadow(1px 3px 1px rgba(0,0,0,.45))}
+.tok svg{width:100%;height:100%;display:block}
+.tok-ring{position:absolute;left:4px;right:4px;bottom:-4px;height:7px;border-radius:50%;border:3px solid;background:rgba(255,255,255,.6)}
+.tok.active{z-index:2;filter:drop-shadow(0 0 4px #fff) drop-shadow(1px 3px 1px rgba(0,0,0,.45))}
+@media (prefers-reduced-motion:reduce){.tok{transition:none}}
+
+/* početni ekran */
+.home,.lobby{max-width:900px;margin:0 auto;padding-block:20px 40px;display:flex;flex-direction:column;gap:18px}
+.mast{display:flex}
+.mast-box{background:var(--red);border:4px solid #fff;outline:3px solid var(--line);padding:12px 22px 10px;display:flex;flex-direction:column;transform:rotate(-2deg);margin:10px 0 6px 4px;box-shadow:6px 6px 0 rgba(0,0,0,.18)}
+.mast .m1{font:900 clamp(34px,8vw,58px)/1 var(--f-board);color:#fff;text-transform:uppercase;letter-spacing:.03em;-webkit-text-stroke:1.5px var(--line);paint-order:stroke}
+.mast .m2{font:800 clamp(14px,3vw,20px)/1.2 var(--f-board);color:#ffe27a;text-transform:uppercase;letter-spacing:.4em}
+.mast.small .m1{font-size:34px}
+.home-lead{margin:0;max-width:60ch;font-size:16px}
+.home-forms{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:16px;align-items:start}
+.panel{background:var(--paper);border:2px solid var(--line);padding:16px;display:flex;flex-direction:column;gap:12px;box-shadow:4px 4px 0 rgba(0,0,0,.12)}
+.panel h2,.modal h2{font:800 18px var(--f-board);text-transform:uppercase;letter-spacing:.06em;margin:0}
+.fld{display:flex;flex-direction:column;gap:4px;font-weight:600;font-size:14px}
+.fld input,.fld select{font:inherit;font-size:17px;min-height:46px;padding:8px 10px;border:2px solid var(--line);background:#fff;border-radius:2px;width:100%}
+.fld input:focus,.fld select:focus{outline:3px solid #1f4fa3;outline-offset:1px}
+.figs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.fig{display:flex;flex-direction:column;align-items:center;gap:2px;border:2px solid #c9c4b6;background:#fff;padding:6px 4px;cursor:pointer;min-height:64px;font-size:12px;text-align:center}
+.fig input{position:absolute;opacity:0;pointer-events:none}
+.fig .fig-svg{width:34px;height:34px}
+.fig:has(input:checked){border-color:var(--line);background:#fff6c9;box-shadow:inset 0 0 0 1px var(--line)}
+.fig:has(input:focus-visible){outline:3px solid #1f4fa3}
+.fig.taken{opacity:.35;cursor:not-allowed}
+.hint{font-size:13px;color:var(--muted);margin:0}
+.linkbtn{background:none;border:0;text-decoration:underline;cursor:pointer;padding:10px 4px;font-weight:600;min-height:44px;align-self:flex-start}
+.resume{align-self:flex-start}
+.loading{text-align:center;padding:60px 0;font-weight:600}
+.code-row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.code{font:900 36px var(--f-board);letter-spacing:.18em;background:#fff;border:2px dashed var(--line);padding:6px 14px}
+.lobby-players{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.lobby-players li{display:flex;gap:10px;align-items:center;border-bottom:1px solid #d8d3c4;padding:4px 0}
+.pname{font-weight:700;overflow-wrap:anywhere}
+.tag{font-size:11px;font-family:var(--f-board);font-weight:700;letter-spacing:.08em;text-transform:uppercase;border:1px solid var(--line);padding:1px 6px}
+.mini-tok{width:30px;height:30px;flex:none;display:inline-block}
+.mini-tok svg{width:100%;height:100%}
+.modes{display:flex;flex-direction:column;gap:8px}
+.mode{display:grid;grid-template-columns:auto 1fr;column-gap:10px;border:2px solid #c9c4b6;background:#fff;padding:10px;cursor:pointer}
+.mode input{grid-row:1/3;width:20px;height:20px;align-self:center}
+.mode span{font-size:13px;color:var(--muted)}
+.mode:has(input:checked){border-color:var(--line);background:#fff6c9}
+.row-btns{display:flex;gap:16px;flex-wrap:wrap}
+
+/* igra */
+.game-screen{max-width:1320px;margin:0 auto;padding-bottom:20px}
+.topbar{display:flex;align-items:center;gap:12px;padding:8px 0;flex-wrap:wrap;font-size:14px}
+.tb-name{font:900 16px var(--f-board);text-transform:uppercase;letter-spacing:.06em;background:var(--red);color:#fff;padding:4px 10px;border:2px solid var(--line)}
+.tb-round{color:var(--muted)}
+.tb-sp{flex:1}
+.tb-btn{min-height:44px;padding:0 12px;border:2px solid var(--line);background:var(--paper);font-family:var(--f-board);font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:.04em;cursor:pointer}
+.game{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:16px;align-items:start}
+.board-area{position:relative;max-width:calc(100vh - 80px);width:100%;justify-self:center}
+.board-scroll{width:100%;overflow:hidden;touch-action:pan-x pan-y}
+.board-scroll.zoomed{overflow:auto;max-height:80vh}
+.board-wrap{width:100%}
+.zoom{display:none;gap:6px;justify-content:flex-end;margin-top:6px}
+.zbtn{width:44px;height:44px;border:2px solid var(--line);background:#fff;font:800 22px var(--f-board);cursor:pointer;box-shadow:0 2px 0 var(--line)}
+.side{position:sticky;top:8px}
+.pl{grid-template-columns:32px 1fr auto}
+.pl.out{opacity:.45}
+.pl .ptags{grid-column:2/4;font-size:12px;color:var(--muted);margin-top:-6px}
+.turn .dice{min-height:42px}
+.dsum{font-weight:700;font-size:14px}
+.dice.shake .die{animation:shake .5s ease-out}
+@keyframes shake{0%{transform:rotate(0) translateY(0)}25%{transform:rotate(-25deg) translateY(-6px)}50%{transform:rotate(18deg) translateY(2px)}75%{transform:rotate(-8deg)}100%{transform:rotate(0)}}
+@media (prefers-reduced-motion:reduce){.dice.shake .die{animation:none}}
+.log span{overflow-wrap:anywhere}
+.log span:first-child{font-weight:600;color:var(--ink)}
+.actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:14px;padding:12px;background:var(--paper);border:2px solid var(--line)}
+.actions:empty{display:none}
+.actions .btn{flex:1 1 150px}
+.actions .waiting{flex:1 1 100%;font-weight:600;font-size:14px}
+.btn.danger{background:#fff;color:var(--red);border-color:var(--red);box-shadow:0 3px 0 var(--red)}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+
+/* prozori */
+.modal{position:fixed;inset:0;z-index:50;background:rgba(20,20,20,.55);display:flex;align-items:center;justify-content:center;padding:max(12px,env(safe-area-inset-top,0px)) max(12px,env(safe-area-inset-right,0px)) max(12px,env(safe-area-inset-bottom,0px)) max(12px,env(safe-area-inset-left,0px));overflow-y:auto}
+.modal-box{background:var(--paper);border:2px solid var(--line);padding:16px;max-width:min(560px,100%);width:auto;display:flex;flex-direction:column;gap:12px;align-items:stretch;max-height:100%;overflow-y:auto;box-shadow:6px 6px 0 rgba(0,0,0,.25)}
+.modal.field .modal-box,.modal.cardm .modal-box{background:transparent;border:0;box-shadow:none;align-items:center;padding:0}
+.modal.field .own,.modal.field .hint{background:var(--paper);border:2px solid var(--line);padding:6px 10px;margin:0;max-width:280px;text-align:center}
+.modal.field .deed{width:min(280px,86vw)}
+.modal.field .btn,.modal.cardm .btn{min-width:200px}
+.manage{display:flex;flex-direction:column;gap:8px;width:100%}
+.modal.field .manage,.modal.cardm .manage{width:min(280px,86vw)}
+.deed-ico{width:44px;height:44px;margin:4px auto -4px}
+.deed-ico.big{width:60px;height:60px;margin:8px auto 0}
+.deed .hotel-row{text-align:center;font-weight:700;padding-top:4px}
+.deed .dnote{font-family:var(--f-text);font-size:11px;line-height:1.3;text-align:center;margin:8px 14px 0;color:#2b2a27}
+.card-who{color:#fff;font-weight:700;margin:0;text-shadow:0 1px 2px #000}
+.flip-stage{perspective:1100px}
+.flip{position:relative;width:min(260px,74vw);aspect-ratio:5/7;transform-style:preserve-3d;animation:flipin .9s cubic-bezier(.2,.7,.2,1) both}
+.flip>*{position:absolute;inset:0;width:100%;backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.flip .back{transform:rotateY(180deg);width:100%}
+.flip .chance{width:100%}
+.flip .chance .x{font-size:clamp(16px,4.6vw,18px)}
+@keyframes flipin{0%{transform:translateY(-40px) scale(.6) rotateZ(-8deg) rotateY(180deg)}55%{transform:scale(1.04) rotateY(180deg)}100%{transform:scale(1) rotateY(0)}}
+@media (prefers-reduced-motion:reduce){.flip{animation:none}}
+.mine-row{display:flex;flex-direction:column;gap:6px;border-bottom:1px solid #d8d3c4;padding-bottom:10px}
+.mine-name{display:flex;align-items:center;gap:8px;background:none;border:0;padding:6px 0;font-weight:700;cursor:pointer;text-align:left;min-height:40px}
+.mine-name small{font-weight:400;color:var(--muted)}
+.sw{display:inline-block;width:14px;height:18px;border:1px solid var(--line);flex:none;vertical-align:middle;margin-right:4px}
+.tgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:520px){.tgrid{grid-template-columns:1fr}}
+.tside{border:2px solid var(--line);padding:10px;display:flex;flex-direction:column;gap:8px;min-width:0;margin:0}
+.tside legend{font:800 13px var(--f-board);text-transform:uppercase;letter-spacing:.06em;padding:0 4px}
+.tprops{display:flex;flex-direction:column;gap:2px;max-height:200px;overflow:auto}
+.tprop{display:flex;align-items:center;gap:6px;min-height:40px;font-size:14px}
+.tprop input{width:20px;height:20px}
+.modal.trade h3{font:800 13px var(--f-board);text-transform:uppercase;margin:0 0 4px}
+.modal.trade ul{margin:0;padding-left:18px}
+.duel-row{display:flex;align-items:center;gap:10px;justify-content:center;font-weight:700}
+.duel-win,.winner{font-size:18px;text-align:center;margin:0}
+.rank{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+.rank td,.rank th{padding:6px;border-bottom:1px solid #d8d3c4;text-align:left}
+.rank td:last-child{text-align:right;font-weight:700}
+.rules{max-height:60vh;overflow:auto;font-size:14.5px;padding-right:6px}
+.rules h3{font:800 14px var(--f-board);text-transform:uppercase;letter-spacing:.05em;margin:12px 0 2px}
+.rules p{margin:0}
+#toast{position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:60;background:var(--ink);color:#fff;padding:10px 16px;font-weight:600;max-width:min(92vw,520px);box-shadow:0 4px 12px rgba(0,0,0,.3);text-align:center}
+
+/* mobitel */
+@media (max-width:900px){
+  .game{grid-template-columns:minmax(0,1fr)}
+  .board-area{max-width:none}
+  .zoom{display:flex}
+  .side{position:static}
+  .game-screen{padding-bottom:calc(140px + env(safe-area-inset-bottom,0px))}
+  .actions{position:fixed;left:0;right:0;bottom:0;z-index:20;margin:0;border-width:2px 0 0;
+    padding:10px max(12px,env(safe-area-inset-right,0px)) calc(10px + env(safe-area-inset-bottom,0px)) max(12px,env(safe-area-inset-left,0px));box-shadow:0 -4px 12px rgba(0,0,0,.15)}
+  .actions .btn{flex:1 1 40%;min-height:48px}
+  .tb-name{display:none}
+  .topbar{gap:8px}
+  .tb-btn{padding:0 10px}
+}
+@media (max-width:420px){ .tb-round{display:none} .tb-btn{padding:0 8px;font-size:12px} .topbar{font-size:13px} }
+/* mobitel položen: ploča lijevo, igrači desno */
+@media (max-width:900px) and (orientation:landscape) and (max-height:520px){
+  .game{grid-template-columns:auto minmax(0,1fr)}
+  .board-area{width:calc(100dvh - 140px);max-width:none}
+  .topbar{padding:4px 0}
+  .tb-btn{min-height:40px}
+  .game-screen{padding-bottom:90px}
+  .actions .btn{flex:1 1 140px}
+}

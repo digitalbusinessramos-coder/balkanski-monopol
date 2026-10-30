@@ -1,0 +1,16 @@
+{
+  "name": "bosanski-monopol",
+  "version": "1.0.0",
+  "description": "Bosanski monopol: online igra za 2 do 6 igrača",
+  "scripts": {
+    "dev": "node dev-server.mjs",
+    "test": "node --test test/*.test.mjs"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@netlify/blobs": "^11.1.7"
+  },
+  "type": "module",
+  "private": true
+}
