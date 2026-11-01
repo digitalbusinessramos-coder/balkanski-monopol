@@ -108,7 +108,7 @@ export const FIGURES = [
 ];
 export const PLAYER_COLORS = ['#1f4fa3', '#d2242a', '#1f9a4b', '#8e44ad', '#e67e22', '#16a3a3'];
 
-// Kartice: 18 Šansi i 19 Iznenađenja.
+// Kartice: 19 Šansi i 20 Iznenađenja.
 export const CHANCE = [
  {
   "title": "Diploma",
@@ -192,7 +192,8 @@ export const CHANCE = [
   "text": "Pukla cijev. Majstor rekao da će doći danas. Nije došao.",
   "effect": "repairs",
   "value": 40,
-  "effectText": "Plati 40 KM po nadogradnji."
+  "hotel": 115,
+  "effectText": "Plati 40 KM po kućici i 115 KM po hotelu ili birtiji."
  },
  {
   "title": "Vikendica",
@@ -223,6 +224,7 @@ export const CHANCE = [
   "effectText": "Primi 100 KM iz banke."
  }
  ,{ "title": "Kava s načelnikom", "text": "Kavu platio ti.", "effect": "mayor", "value": 30, "effectText": "Plati načelniku 30 KM. Ako nema načelnika, ide u bubanj." }
+ ,{ "title": "Kašika u med", "text": "Upala ti kašika u med.", "effect": "cash", "value": 100, "effectText": "Primi 100 KM iz banke." }
  ,{ "title": "Bratić iz Austrije", "text": "Došao bratić. Ti plaćaš piće.", "effect": "cash", "value": -30, "effectText": "Plati 30 KM banci." }
 ];
 export const SURPRISE = [
@@ -346,5 +348,6 @@ export const SURPRISE = [
   "effectText": "Biraš suparnika. Pobjednik nosi 50 KM."
  }
  ,{ "title": "Didov auto", "text": "Did ti ostavio auto. 380 tisuća kilometara.", "effect": "car", "value": 100, "effectText": "Dobiješ Golfa. Ako već imaš auto, primi 100 KM." }
+ ,{ "title": "Tetka iz Njemačke", "text": "Stigla tetka iz Njemačke. Poklon iz dijaspore.", "effect": "cash", "value": 100, "effectText": "Primi 100 KM iz banke." }
  ,{ "title": "Policija na okuci", "text": "Nisu ti mogli ništa nać, al plati 20 KM da te puste.", "effect": "cash", "value": -20, "effectText": "Plati 20 KM banci." }
 ];
