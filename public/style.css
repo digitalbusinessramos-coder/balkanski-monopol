@@ -297,19 +297,3 @@ button{font:inherit;color:inherit}
 .inner.top .nm{margin-top:0;margin-bottom:6px}
 .inner.top .pr{margin-bottom:0;margin-top:6px}
 
-/* naše pare */
-.pl .wallet{grid-column:2/4;display:flex;flex-wrap:wrap;gap:4px 6px;margin-top:-4px}
-.w-n{display:inline-flex;align-items:center;gap:2px;font-size:11px}
-.w-n .note{width:30px;height:15px}
-.w-n .coin{width:14px;height:14px}
-#cash{position:fixed;left:50%;top:84px;transform:translateX(-50%);z-index:55;background:#fff;border:2px solid #141414;box-shadow:4px 4px 0 rgba(0,0,0,.25);padding:8px 14px;text-align:center;pointer-events:none;animation:cashIn .35s ease-out}
-#cash[hidden]{display:none}
-#cash .cash-amt{font:900 22px var(--f-board)}
-#cash.plus .cash-amt{color:#1f8f3a}
-#cash.minus .cash-amt{color:var(--red)}
-#cash .cash-row{display:flex;gap:6px;justify-content:center;align-items:center;margin-top:4px}
-#cash .cash-n{display:inline-flex;align-items:center;gap:2px;font-size:12px}
-#cash .note{width:64px;height:32px}
-#cash .coin{width:24px;height:24px}
-@keyframes cashIn{from{transform:translate(-50%,-14px);opacity:0}to{transform:translate(-50%,0);opacity:1}}
-@media (prefers-reduced-motion:reduce){#cash{animation:none}}
