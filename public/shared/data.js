@@ -16,7 +16,28 @@ export const RULES = {
   utilityMult: [0, 4, 10],
   minPlayers: 2,
   maxPlayers: 6,
+  // Načelnik: izbori svakih 5 krugova u brzoj i 10 u klasičnoj partiji, samo kad igraju barem 3.
+  mayorEveryFast: 5,
+  mayorEveryClassic: 10,
+  mayorMinPlayers: 3,
+  mayorFee: 10,
+  bribe: 100,
+  stealCash: 100,
+  betStake: 50,
+  betWin: 150,
+  mercedesBonus: 10,
+  mercedesService: 30,
 };
+
+// Auta se kupuju na stanicama. Igrač ima najviše jedan auto.
+export const CARS = [
+  { id: 'golf', name: 'Golf dvojka', price: 100, desc: 'Na tuđim stanicama plaćaš pola.' },
+  { id: 'traktor', name: 'Traktor', price: 150, desc: 'Po selima džaba: na seoskim poljima bez kuća ne plaćaš kiriju, a s kućama plaćaš pola.' },
+  { id: 'passat', name: 'Passat karavan', price: 200, desc: 'Na tuđim stanicama ne plaćaš ništa.' },
+  { id: 'mercedes', name: 'Mercedes', price: 350, desc: 'Ko stane na tvoj posjed plaća 10 KM više. Na svakom prolasku Starta servis 30 KM.' },
+];
+export const carById = (id) => CARS.find((c) => c.id === id);
+export const VILLAGES = ['Buzuci', 'Brnjaci', 'Azići', 'Prahulje'];
 
 // Cijena gradnje po kućici za svaku grupu boja.
 export const HOUSE_COST = { 1: 50, 2: 50, 3: 100, 4: 100, 5: 150, 6: 150, 7: 200, 8: 200 };
@@ -27,7 +48,7 @@ export const GROUP_COLOR = {
 };
 
 // kind: start | prop | chance | surprise | tax | station | jail | utility | free | gotojail
-// rent: [prazno, 1 kuća, 2, 3, 4, hotel]
+// rent: [prazno, 1 kuća, 2, 3, 4, birtija]
 export const FIELDS = [
   { name: 'Legla plata', kind: 'start' },
   { name: 'Donji Vakuf', kind: 'prop', group: 1, price: 60, rent: [2, 10, 30, 90, 160, 250] },
@@ -67,7 +88,7 @@ export const FIELDS = [
   { name: 'Stanica Mostar', kind: 'station', price: 200 },
   { name: 'Šansa', kind: 'chance' },
   { name: 'Prahulje', kind: 'prop', group: 8, price: 390, rent: [40, 190, 570, 1250, 1500, 1750] },
-  { name: 'Porez na luksuz', kind: 'tax', amount: 100 },
+  { name: 'Kladionica', kind: 'bet', amount: 50 },
   { name: 'Nova Bila', kind: 'prop', group: 8, price: 400, rent: [50, 200, 600, 1400, 1700, 2000] },
 ];
 
@@ -86,7 +107,7 @@ export const FIGURES = [
 ];
 export const PLAYER_COLORS = ['#1f4fa3', '#d2242a', '#1f9a4b', '#8e44ad', '#e67e22', '#16a3a3'];
 
-// Kartice: 16 Šansi i 17 Iznenađenja.
+// Kartice: 18 Šansi i 19 Iznenađenja.
 export const CHANCE = [
  {
   "title": "Diploma",
@@ -200,6 +221,8 @@ export const CHANCE = [
   "value": 100,
   "effectText": "Primi 100 KM iz banke."
  }
+ ,{ "title": "Kava s načelnikom", "text": "Kavu platio ti.", "effect": "mayor", "value": 30, "effectText": "Plati načelniku 30 KM. Ako nema načelnika, ide u bubanj." }
+ ,{ "title": "Bratić iz Austrije", "text": "Došao bratić. Ti plaćaš piće.", "effect": "cash", "value": -30, "effectText": "Plati 30 KM banci." }
 ];
 export const SURPRISE = [
  {
@@ -321,4 +344,6 @@ export const SURPRISE = [
   "value": 50,
   "effectText": "Biraš suparnika. Pobjednik nosi 50 KM."
  }
+ ,{ "title": "Didov auto", "text": "Did ti ostavio auto. 380 tisuća kilometara.", "effect": "car", "value": 100, "effectText": "Dobiješ Golfa. Ako već imaš auto, primi 100 KM." }
+ ,{ "title": "Policija na okuci", "text": "Nisu ti mogli ništa nać, al plati 20 KM da te puste.", "effect": "cash", "value": -20, "effectText": "Plati 20 KM banci." }
 ];

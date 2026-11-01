@@ -1,5 +1,5 @@
 // Klijent: prikazuje stanje sa servera i šalje radnje. Sva pravila provjerava server.
-import { FIELDS, RULES, HOUSE_COST, GROUP_COLOR, FIGURES, GAME_NAME, CHANCE, SURPRISE, groupOf } from './shared/data.js';
+import { FIELDS, RULES, HOUSE_COST, GROUP_COLOR, FIGURES, GAME_NAME, CHANCE, SURPRISE, groupOf, CARS, carById } from './shared/data.js';
 import { IC, TOK, km, esc, pos, cellHTML, centerArt, dieHTML, cardHTML, backHTML, deedHTML } from './board.js';
 
 const $ = (sel, el = document) => el.querySelector(sel);
@@ -20,7 +20,7 @@ const store = {
 
 const S = {
   screen: 'home', code: null, me: null, token: null, state: null, presence: {}, serverNow: 0, clockSkew: 0,
-  busy: false, zoom: 1, seen: { card: 0, roll: 0, duel: 0, trade: 0, buy: '' }, boardBuilt: false, lastPos: {},
+  busy: false, zoom: 1, seen: { card: 0, roll: 0, duel: 0, trade: 0, buy: '', car: '' }, boardBuilt: false, lastPos: {},
 };
 
 // ---------- API ----------
@@ -425,7 +425,10 @@ function statusText() {
     if (h.kind === 'buy') return `${who(h.pid)} ${you ? 'odlučuješ' : 'odlučuje'} hoće li kupiti ${esc(FIELDS[h.pos].name)} za ${km(FIELDS[h.pos].price)}.`;
     if (h.kind === 'debt') return `${who(h.pid)} ${you ? 'duguješ' : 'duguje'} ${km(h.amount)} (${esc(h.reason)}). ${you ? 'Prodaj kućice ili uzmi hipoteku, pa plati.' : 'Čeka se da plati.'}`;
     if (h.kind === 'choice') return `${who(h.pid)} ${you ? 'biraš' : 'bira'}: platiti ${km(h.amount)} ili jedan potez u Zenici.`;
-    if (h.kind === 'duel') return `${who(h.pid)} ${you ? 'biraš' : 'bira'} suparnika za ćevap-duel.`;
+    if (h.kind === 'duel') return `${who(h.pid)} ${you ? 'biraš' : 'bira'} suparnika za Hari ili Željo.`;
+    if (h.kind === 'car') return `${who(h.pid)} ${you ? 'si' : 'je'} na auto-placu. ${you ? 'Kupi auto ili idi dalje.' : 'Bira auto.'}`;
+    if (h.kind === 'steal') return `${who(h.pid)} ${you ? 'imaš' : 'ima'} Novu Bilu: ${you ? 'uzmi platu ili ukradi nešto. Ako padne 6, uhvati te policija.' : 'bira platu ili krađu.'}`;
+    if (h.kind === 'bribe') return `${who(h.pid)} ${you ? 'treba' : 'treba'} u Zenicu. ${you ? `Možeš podmitit s ${km(h.amount)}, ali ako padne 1, otkriven si.` : 'Razmišlja o mitu.'}`;
   }
   if (st.trade) return `${who(st.trade.from)} ${st.trade.from === S.me ? 'čekaš odgovor na ponudu.' : `je ponudio trgovinu igraču ${st.trade.to === S.me ? 'tebi' : nameOf(st.trade.to)}.`}`;
   const t = st.turn, p = P(t.pid), you = t.pid === S.me;
@@ -461,6 +464,10 @@ function maybeAutoModal() {
   if (st.phase === 'over') { showGameOver(); return; }
   const h = st.queue[0];
   const key = h ? `${h.kind}-${h.pid}-${h.pos ?? ''}-${st.v}` : '';
+  if (h?.pid === S.me && h.kind === 'car' && S.seen.car !== `${st.turn.since}-${st.lastRoll?.n}`) {
+    S.seen.car = `${st.turn.since}-${st.lastRoll?.n}`;
+    openCars(true); return;
+  }
   if (h?.pid === S.me && h.kind === 'buy' && S.seen.buy !== `${h.pos}-${st.turn.since}-${st.lastRoll?.n}`) {
     S.seen.buy = `${h.pos}-${st.turn.since}-${st.lastRoll?.n}`;
     openField(h.pos, true); return;
@@ -476,7 +483,7 @@ function renderPlayers() {
   $('#players').innerHTML = st.players.map((p) => {
     const props = ownedBy(p.id).sort((a, b) => a - b);
     const away = !p.bankrupt && now() - (S.presence[p.id] || 0) > SKIP_MS;
-    const tags = [p.id === S.me ? 'ti' : '', p.inJail ? 'Zenica' : '', p.skip ? 'propušta potez' : '', p.pardons.length ? `vikendica ×${p.pardons.length}` : '', away ? 'nije tu' : ''].filter(Boolean);
+    const tags = [p.id === S.me ? 'ti' : '', st.mayor === p.id ? 'načelnik' : '', p.car ? carById(p.car).name : '', p.inJail ? 'Zenica' : '', p.skip ? 'propušta potez' : '', p.pardons.length ? `vikendica ×${p.pardons.length}` : '', away ? 'nije tu' : ''].filter(Boolean);
     return `<div class="pl${st.turn?.pid === p.id ? ' active' : ''}${p.bankrupt ? ' out' : ''}">
       <span class="mini-tok" style="--c:${p.color}">${figureSVG(p.figure)}</span>
       <span class="n" style="color:${p.color}">${esc(p.name)}</span>
@@ -515,6 +522,15 @@ function renderActions() {
       out.push(btn('Potez u Zenici', () => send({ type: 'choice', opt: 'jail' })));
     } else if (h.kind === 'duel') {
       st.players.filter((p) => !p.bankrupt && p.id !== S.me).forEach((p) => out.push(btn(`Duel: ${p.name}`, () => send({ type: 'duel', target: p.id }), 'primary')));
+    } else if (h.kind === 'car') {
+      out.push(btn('Auto-plac', openCars, 'primary'));
+      out.push(btn('Ne treba mi auto', () => send({ type: 'car' })));
+    } else if (h.kind === 'steal') {
+      out.push(btn(`Uzmi platu ${km(h.salary)}`, () => send({ type: 'steal' })));
+      st.players.filter((p) => !p.bankrupt && p.id !== S.me && p.id !== st.mayor).forEach((p) => out.push(btn(`Ukradi od: ${p.name} (${p.car ? carById(p.car).name : km(Math.min(p.money, RULES.stealCash))})`, () => send({ type: 'steal', target: p.id }), 'primary')));
+    } else if (h.kind === 'bribe') {
+      out.push(btn(`Podmiti (${km(h.amount)})`, () => send({ type: 'bribe', opt: 'pay' }), 'primary', m.money < h.amount));
+      out.push(btn('Idi u Zenicu', () => send({ type: 'bribe', opt: 'jail' })));
     } else if (h.kind === 'debt') {
       out.push(btn(`Plati dug ${km(h.amount)}`, () => send({ type: 'payDebt' }), 'primary', m.money < h.amount));
       out.push(btn('Moji posjedi', openMine));
@@ -563,7 +579,7 @@ function manageButtons(i) {
   const can = canManage(), free = can && !st.queue.length, b = [];
   if (f.group) {
     const g = groupOf(f.group), full = g.every((k) => st.owners[k]?.owner === S.me);
-    if (full && o.level < 5 && free) b.push(`<button class="btn" data-a="build" data-pos="${i}" type="button">${o.level === 4 ? 'Gradi hotel' : 'Gradi kućicu'} (${km(HOUSE_COST[f.group])})</button>`);
+    if (full && o.level < 5 && free) b.push(`<button class="btn" data-a="build" data-pos="${i}" type="button">${o.level === 4 ? 'Gradi birtiju' : 'Gradi kućicu'} (${km(HOUSE_COST[f.group])})</button>`);
     if (o.level > 0 && can) b.push(`<button class="btn" data-a="sell" data-pos="${i}" type="button">Prodaj nadogradnju (+${km(HOUSE_COST[f.group] / 2)})</button>`);
     if (!o.mortgaged && can && !g.some((k) => level(k) > 0)) b.push(`<button class="btn" data-a="mortgage" data-pos="${i}" type="button">Hipoteka (+${km(f.price / 2)})</button>`);
   } else if (!o.mortgaged && can) b.push(`<button class="btn" data-a="mortgage" data-pos="${i}" type="button">Hipoteka (+${km(f.price / 2)})</button>`);
@@ -583,7 +599,7 @@ function openField(i, auto = false) {
   const h = st?.queue[0];
   const buying = h?.kind === 'buy' && h.pid === S.me && h.pos === i;
   const lv = o?.level ?? 0;
-  const owner = o ? `<p class="own">Vlasnik: <b style="color:${P(o.owner).color}">${nameOf(o.owner)}</b>${lv ? `, ${lv === 5 ? 'hotel' : `${lv} ${lv === 1 ? 'kućica' : 'kućice'}`}` : ''}${o.mortgaged ? ', pod hipotekom' : ''}</p>` : (f.price ? '<p class="own">Slobodno za kupnju.</p>' : '');
+  const owner = o ? `<p class="own">Vlasnik: <b style="color:${P(o.owner).color}">${nameOf(o.owner)}</b>${lv ? `, ${lv === 5 ? 'birtija' : `${lv} ${lv === 1 ? 'kućica' : 'kućice'}`}` : ''}${o.mortgaged ? ', pod hipotekom' : ''}</p>` : (f.price ? '<p class="own">Slobodno za kupnju.</p>' : '');
   const buy = buying ? `<div class="manage"><button class="btn primary" id="m-buy" type="button" ${me().money < f.price ? 'disabled' : ''}>Kupi za ${km(f.price)}</button><button class="btn" id="m-dec" type="button">Ne kupujem</button></div>${me().money < f.price ? '<p class="hint">Nemaš dovoljno gotovine. Možeš uzeti hipoteku na drugi posjed.</p>' : ''}` : '';
   const m = openModal(`${deedHTML(i)}${owner}${buy}${st ? manageButtons(i) : ''}<button class="btn" data-close type="button">Zatvori</button>`, { auto, cls: 'field' });
   m.querySelector('#m-buy')?.addEventListener('click', async () => { closeModal(); await send({ type: 'buy' }); });
@@ -596,7 +612,7 @@ function openMine() {
   const mine = ownedBy(S.me).sort((a, b) => a - b);
   const rows = mine.map((i) => {
     const o = st.owners[i], f = FIELDS[i];
-    return `<div class="mine-row"><button class="mine-name" data-open="${i}" type="button"><span class="sw" style="background:${f.group ? GROUP_COLOR[f.group] : '#fff'}"></span>${esc(f.name)}<small>${o.level ? (o.level === 5 ? 'hotel' : `${o.level} kuć.`) : ''}${o.mortgaged ? ' hipoteka' : ''}</small></button>${manageButtons(i)}</div>`;
+    return `<div class="mine-row"><button class="mine-name" data-open="${i}" type="button"><span class="sw" style="background:${f.group ? GROUP_COLOR[f.group] : '#fff'}"></span>${esc(f.name)}<small>${o.level ? (o.level === 5 ? 'birtija' : `${o.level} kuć.`) : ''}${o.mortgaged ? ' hipoteka' : ''}</small></button>${manageButtons(i)}</div>`;
   }).join('');
   const m = openModal(`<h2>Moji posjedi</h2>${rows || '<p>Još nemaš posjeda.</p>'}<button class="btn" data-close type="button">Zatvori</button>`, { cls: 'list' });
   m.querySelectorAll('[data-open]').forEach((b) => b.addEventListener('click', () => openField(Number(b.dataset.open))));
@@ -618,6 +634,17 @@ function showCard(c) {
     m.querySelector('[data-close]').addEventListener('click', () => setTimeout(maybeAutoModal, 0));
     if (!mine) setTimeout(close, 6500);
   }
+}
+
+function openCars(auto = false) {
+  const m0 = me(), back = m0.car ? Math.floor(carById(m0.car).price / 2) : 0;
+  const rows = CARS.map((c) => {
+    const mine = m0.car === c.id, can = !mine && m0.money + back >= c.price;
+    return `<div class="mine-row"><div><b>${esc(c.name)}</b> · ${km(c.price)}<br><small>${esc(c.desc)}</small></div><button class="btn${can ? ' primary' : ''}" data-car="${c.id}" type="button" ${can ? '' : 'disabled'}>${mine ? 'Već imaš' : 'Kupi'}</button></div>`;
+  }).join('');
+  const m = openModal(`<h2>Auto-plac</h2><p class="hint">Možeš imat jedan auto.${m0.car ? ` Tvoj ${esc(carById(m0.car).name)} se prodaje za ${km(back)} ako uzmeš drugi.` : ''}</p>${rows}<button class="btn" id="car-no" type="button">Ne treba mi auto</button>`, { auto, cls: 'field' });
+  m.querySelectorAll('[data-car]').forEach((b) => b.addEventListener('click', async () => { closeModal(); await send({ type: 'car', car: b.dataset.car }); }));
+  m.querySelector('#car-no').addEventListener('click', async () => { closeModal(); await send({ type: 'car' }); });
 }
 
 function showDuel(d) {
@@ -703,14 +730,19 @@ function openRules() {
   <h3>Početak</h3><p>Svako dobiva ${km(RULES.startMoney)}. Svaki prolazak preko Starta donosi ${km(RULES.passStart)}, a ko stane baš na Start dobiva duplo, ${km(RULES.passStart * 2)}. Redoslijed igrača se bira nasumično.</p>
   <h3>Potez</h3><p>Bacaš dvije kockice i ideš naprijed. Duple kockice daju novo bacanje. Tri duple zaredom vode ravno u KP dom Zenica.</p>
   <h3>Kupnja i kirija</h3><p>Slobodan posjed možeš kupiti po cijeni na polju. Ako ga ne kupiš, ostaje banci (u ovoj verziji <b>nema aukcije</b>). Kad staneš na tuđi posjed, plaćaš kiriju sa vlasničkog lista. Ko ima cijelu grupu boja, na praznim posjedima naplaćuje duplu kiriju. Stanice: 25, 50, 100 ili 200 KM prema broju stanica vlasnika. Režije: 4 puta zbir kockica, a s obje režije 10 puta.</p>
-  <h3>Gradnja</h3><p>Graditi možeš na svom potezu kad imaš cijelu grupu i nijedan posjed u njoj nije pod hipotekom. Gradi se ravnomjerno: najviše jedna kućica razlike unutar grupe. Nakon četiri kućice dolazi hotel. Nadogradnje se prodaju banci za pola cijene, također ravnomjerno. <b>Broj kućica nije ograničen.</b></p>
+  <h3>Gradnja</h3><p>Graditi možeš na svom potezu kad imaš cijelu grupu i nijedan posjed u njoj nije pod hipotekom. Gradi se ravnomjerno: najviše jedna kućica razlike unutar grupe. Nakon četiri kućice dolazi birtija (kao hotel). Nadogradnje se prodaju banci za pola cijene, također ravnomjerno. <b>Broj kućica nije ograničen.</b></p>
   <h3>Hipoteka</h3><p>Hipoteka donosi 50 % kupovne cijene, a otkup košta 55 %. Na posjedu pod hipotekom nema kirije. Prije hipoteke treba prodati kućice u toj grupi.</p>
   <h3>Dug i bankrot</h3><p>Kad nemaš dovoljno gotovine za plaćanje, nastaje dug. Prodaj nadogradnje ili uzmi hipoteku pa plati. Ako ne možeš, proglašavaš bankrot. Ako duguješ igraču, on dobiva svu tvoju imovinu (posjede pod hipotekom preuzima takve, bez dodatne kamate). Ako duguješ banci, posjedi se vraćaju banci.</p>
   <h3>Trgovanje</h3><p>Na svom potezu možeš ponuditi novac, posjede i vikendicu drugom igraču. Ponuda vrijedi tek kad je drugi igrač sam prihvati. Grupe s kućicama se ne mijenjaju.</p>
   <h3>KP dom Zenica</h3><p>Izlaz: duple kockice, vikendica ili ${km(RULES.jailFine)} prije bacanja. Nakon trećeg neuspjelog pokušaja plaćaš ${km(RULES.jailFine)} i ideš za bačeni broj. Odlazak u zatvor nikad ne naplaćuje Start.</p>
   <h3>Kratki zatvor</h3><p>Kod kartica „Javio se Crni” i „Među nama” biraš: platiti ili jedan potez u Zenici. Jedan potez znači da ideš na polje KP dom Zenica, propuštaš svoj sljedeći potez i onda normalno nastavljaš.</p>
+  <h3>Auta</h3><p>Kad staneš na stanicu, otvara se auto-plac. Možeš imat jedan auto, a stari se prodaje za pola cijene.</p><ul>${CARS.map((c) => `<li><b>${c.name}</b> (${km(c.price)}): ${c.desc}</li>`).join('')}</ul><p>Sela za traktor: Buzuci, Brnjaci, Azići i Prahulje.</p>
+  <h3>Krađa s Nove Bile</h3><p>Ko ima Novu Bilu, kad prođe Start bira: uzme platu ili ukrade nekom auto (a ako nema auta, do ${km(RULES.stealCash)}). Ako pri krađi padne 6, uhvati ga policija i ide u Zenicu bez plate. Načelnika se ne može pokrast.</p>
+  <h3>Načelnik</h3><p>Samo kad igraju barem ${RULES.mayorMinPlayers}. Svakih ${RULES.mayorEveryFast} krugova u brzoj (${RULES.mayorEveryClassic} u klasičnoj) su izbori, a načelnik postaje ko ima najviše imovine. Od svakog ko prođe Start uzima ${km(RULES.mayorFee)} članarine.</p>
+  <h3>Mito</h3><p>Kad trebaš u Zenicu (polje, kartica ili tri duple), možeš podmitit s ${km(RULES.bribe)} i ostat vani. Mito ide načelniku, a bez načelnika u bubanj. Ako padne 1, mito je otkriven: pare idu u bubanj, a ti u Zenicu. Načelnik ne može podmitit sam sebe.</p>
+  <h3>Kladionica</h3><p>Ko stane, uplati ${km(RULES.betStake)} i baca kocku: 1 do 3 tiket pao, 4 ili 5 vraćen ulog, 6 dobitak ${km(RULES.betWin)}.</p>
   <h3>Kod babe</h3><p>Sve što se plaća banci (porezi, kartice, kazne i izlazak iz Zenice) ide baki u bubanj. Ko stane na polje Kod babe, pokupi cijeli bubanj. Koliko je unutra piše gore pored kruga.</p>
-  <h3>Kartice</h3><p>Dobici idu iz banke, a plaćanja baki u bubanj, osim kad kartica kaže drugačije. „Bosna ulazi u EU” vodi na sljedeću stanicu naprijed, uz platu ako prođeš Start. Kartice koje vraćaju unazad ne plaćaju Start. „Majstor”: 40 KM po nadogradnji (hotel se broji kao pet). „Ko časti?”: 10 KM svakom drugom igraču u igri. „Hari ili Željo?”: biraš suparnika, ti si za Harija, on za Želju. Hari uvijek dobija, osim svakog trećeg kruga. Pobjednik nosi 50 KM. „Vikendica” čuvaš dok ti ne zatreba za izlazak iz Zenice.</p>
+  <h3>Kartice</h3><p>Dobici idu iz banke, a plaćanja baki u bubanj, osim kad kartica kaže drugačije. „Bosna ulazi u EU” vodi na sljedeću stanicu naprijed, uz platu ako prođeš Start. Kartice koje vraćaju unazad ne plaćaju Start. „Majstor”: 40 KM po nadogradnji (birtija se broji kao pet). „Ko časti?”: 10 KM svakom drugom igraču u igri. „Hari ili Željo?”: biraš suparnika, ti si za Harija, on za Želju. Hari uvijek dobija, osim svakog trećeg kruga. Pobjednik nosi 50 KM. „Vikendica” čuvaš dok ti ne zatreba za izlazak iz Zenice.</p>
   <h3>Kraj partije</h3><p><b>Brza:</b> nakon ${RULES.fastRounds} punih krugova oko stola pobjeđuje najveća imovina (gotovina, posjedi po kupovnoj cijeni ili pola ako su pod hipotekom, i nadogradnje po cijeni gradnje). <b>Klasična:</b> pobjeđuje zadnji igrač koji nije bankrotirao.</p>
   <h3>Ako neko ode</h3><p>Ako igrač na kojeg se čeka nije aktivan 1 minutu, drugi ga mogu preskočiti (ne kupuje, a kod kartica s izborom plaća). Nakon 2 minute ga mogu izbaciti, a njegova imovina ide banci ili vjerovniku. Ko osvježi stranicu ili izgubi vezu, vraća se preko istog linka na istom uređaju.</p>
   <h3>Napomena</h3><p>Sav novac je igraći. Satirične kartice su izmišljene situacije, a ne vijesti ni izjave stvarnih osoba.</p>

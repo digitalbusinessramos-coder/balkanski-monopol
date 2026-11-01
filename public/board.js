@@ -75,7 +75,7 @@ export const TOK = {
 };
 
 export function cellHTML(f, i) {
- const n = f.name, k = { prop: 'p', station: 'st', utility: 'u', tax: 'tax', chance: 's', surprise: 'i', start: 'start', jail: 'jail', free: 'free', gotojail: 'go' }[f.kind];
+ const n = f.name, k = { prop: 'p', station: 'st', utility: 'u', tax: 'tax', bet: 'bet', chance: 's', surprise: 'i', start: 'start', jail: 'jail', free: 'free', gotojail: 'go' }[f.kind];
  const a = f.kind === 'prop' ? f.group : f.kind === 'utility' ? f.icon : f.kind === 'tax' ? (f.amount === 100 ? 'ring' : 'tax') : 0;
  const b = f.price ?? `Plati ${km(f.amount || 0)}`;
  let h = '';
@@ -83,11 +83,12 @@ export function cellHTML(f, i) {
  else if(k==='st') h=`<div class="nm">${n.replace('Stanica ','Stanica<br>')}</div><div class="ico">${IC.train}</div><div class="pr">${km(b)}</div>`;
  else if(k==='u') h=`<div class="nm">${n}</div><div class="ico sm">${IC[a]}</div><div class="pr">${km(b)}</div>`;
  else if(k==='tax') h=`<div class="nm">${n}</div><div class="ico sm">${IC[a]}</div><div class="pr">${b}</div>`;
+ else if(k==='bet') h=`<div class="nm">${n}</div><div class="ico sm">${IC.ili.kocka}</div><div class="pr">Tiket ${km(f.amount)}</div>`;
  else if(k==='s') h=`<div class="nm">Šansa</div><div style="font:900 56px/1 var(--f-board);color:var(--red);-webkit-text-stroke:1.5px #141414;margin-top:8px">?</div>`;
  else if(k==='i') h=`<div class="nm">Iznenađenje</div><div class="ico">${IC.box}</div>`;
- else if(k==='start') h=`<div class="small">Prolaziš i primaš 200 KM</div><div class="big" style="font-size:22px">Legla<br>plata</div><svg viewBox="0 0 90 30" width="84" height="28"><path d="M86 15H16M28 3 12 15l16 12" fill="none" stroke="#d2242a" stroke-width="7" stroke-linejoin="round"/></svg>`;
+ else if(k==='start') h=`<div class="small">Prolaziš i primaš ${km(RULES.passStart)}</div><div class="big" style="font-size:22px">Legla<br>plata</div><svg viewBox="0 0 90 30" width="84" height="28"><path d="M86 15H16M28 3 12 15l16 12" fill="none" stroke="#d2242a" stroke-width="7" stroke-linejoin="round"/></svg>`;
  else if(k==='jail') h=`<div style="display:grid;grid-template-columns:30px 1fr;width:117px;height:117px"><div style="grid-row:1/3;display:flex;align-items:center;justify-content:center;border-right:1px solid #141414"><span style="transform:rotate(90deg);font:700 10px var(--f-board);white-space:nowrap;letter-spacing:.1em">SAMO U POSJETI</span></div><div style="background:#f08a24;border-bottom:1px solid #141414;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;height:87px;box-sizing:border-box"><span class="big" style="font-size:13px">KP dom<br>Zenica</span><svg viewBox="0 0 40 30" width="40" height="28"><rect x="2" y="2" width="36" height="26" fill="#fff" stroke="#141414" stroke-width="2"/><path d="M10 2v26M18 2v26M26 2v26M33 2v26" stroke="#141414" stroke-width="2.4"/></svg></div><div class="small" style="font-size:8.5px;display:flex;align-items:center;justify-content:center;font-style:italic;padding:0 2px">„U Zenicu kada pođem ja…”</div></div>`;
- else if(k==='free') h=`<div class="big">Kod</div><div class="ico" style="width:40px;height:40px;margin:0">${IC.dzezva}</div><div class="big">babe</div><div class="small">Predah, kahva i ništa se ne plaća</div>`;
+ else if(k==='free') h=`<div class="big">Kod</div><div class="ico" style="width:40px;height:40px;margin:0">${IC.dzezva}</div><div class="big">babe</div><div class="small">Ko stane, kupi bubanj</div>`;
  else if(k==='go') h=`<div class="big">Idi u</div><div class="ico" style="width:40px;height:40px;margin:0">${IC.cuffs}</div><div class="big">Zenicu</div><div class="small">Bez naplate Starta</div>`;
  return h;
 }
@@ -215,7 +216,7 @@ export function deedHTML(pos) {
  <div class="deed-ico">${IC.city[f.name] || ''}</div>
  <table><tr class="rent1"><td colspan="2">Kirija ${km(r[0])}</td></tr>
  <tr><td>S 1 kućom</td><td>${km(r[1])}</td></tr><tr><td>S 2 kuće</td><td>${km(r[2])}</td></tr><tr><td>S 3 kuće</td><td>${km(r[3])}</td></tr><tr><td>S 4 kuće</td><td>${km(r[4])}</td></tr>
- <tr><td colspan="2" class="hotel-row">S hotelom ${km(r[5])}</td></tr></table><hr>
+ <tr><td colspan="2" class="hotel-row">S birtijom ${km(r[5])}</td></tr></table><hr>
  <table><tr><td>Cijena</td><td>${km(f.price)}</td></tr><tr><td>Hipoteka</td><td>${km(f.price * RULES.mortgageRate)}</td></tr><tr><td>Otkup</td><td>${km(Math.ceil(Math.round(f.price * RULES.unmortgageRate * 100) / 100))}</td></tr><tr><td>Kuća košta</td><td>${km(hc)}</td></tr><tr><td>Hotel košta</td><td>${km(hc)} + 4 kuće</td></tr></table>
  <div class="dnote">Ko ima cijelu grupu (${names.join(', ')}) naplaćuje duplu kiriju na praznim posjedima.</div></div></div>`;
   }
@@ -237,11 +238,12 @@ export function deedHTML(pos) {
 function fieldInfo(pos) {
   const f = FIELDS[pos];
   return {
-    start: `Svaki put kad prođeš ili staneš na Start, primaš ${km(RULES.passStart)}.`,
+    start: `Kad prođeš Start, primaš ${km(RULES.passStart)}. Ako staneš baš na Start, duplo: ${km(RULES.passStart * 2)}.`,
+    bet: `Uplatiš ${km(RULES.betStake)} i baciš kocku: 1 do 3 tiket pao, 4 ili 5 vraćen ulog, 6 dobitak ${km(RULES.betWin)}.`,
     tax: `Plaćaš ${km(f.amount || 0)} banci.`,
     chance: 'Izvlačiš kartu Šanse.', surprise: 'Izvlačiš kartu Iznenađenja.',
-    jail: `„U Zenicu kada pođem ja…” Ako samo prolaziš, u posjeti si. Izlaz: duple kockice, pomilovanje ili ${km(RULES.jailFine)}.`,
-    free: 'Predah kod babe. Kahva, ništa se ne plaća.',
+    jail: `„U Zenicu kada pođem ja…” Ako samo prolaziš, u posjeti si. Izlaz: duple kockice, vikendica ili ${km(RULES.jailFine)}.`,
+    free: 'Kod babe je bubanj: sve što se plati banci za poreze, kartice i kazne. Ko stane ovdje, pokupi sve.',
     gotojail: 'Ideš ravno u KP dom Zenica, bez naplate Starta.',
   }[f.kind] || '';
 }

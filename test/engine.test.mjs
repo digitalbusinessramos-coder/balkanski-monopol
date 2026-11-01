@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { newRoom, addPlayer, applyAction, rentFor, netWorth } from '../netlify/functions/lib/engine.mjs';
-import { CHANCE, SURPRISE, FIELDS, RULES } from '../public/shared/data.js';
+import { CHANCE, SURPRISE, FIELDS, RULES, CARS } from '../public/shared/data.js';
 
 // Kockice po narudžbi: svaki rng.int(6) vraća sljedeću vrijednost iz liste (1..6).
 function scripted(vals) {
@@ -26,9 +26,9 @@ const setDeck = (s, deck, idx) => { s.decks[deck] = [idx, ...s.decks[deck].filte
 const ci = (t) => CHANCE.findIndex((c) => c.title === t);
 const si = (t) => SURPRISE.findIndex((c) => c.title === t);
 
-test('16 Šansi i 17 Iznenađenja, bez dugih crtica, bez starih karata', () => {
-  assert.equal(CHANCE.length, 16);
-  assert.equal(SURPRISE.length, 17);
+test('18 Šansi i 19 Iznenađenja, bez dugih crtica, bez starih karata', () => {
+  assert.equal(CHANCE.length, 18);
+  assert.equal(SURPRISE.length, 19);
   const all = JSON.stringify([CHANCE, SURPRISE, FIELDS]);
   assert.ok(!all.includes('\u2014'));
   assert.ok(!all.includes('Treći ključ'));
@@ -95,6 +95,8 @@ test('tri duple vode u Zenicu bez Starta', () => {
   act(s, 'p0', { type: 'decline' });
   const m = P(s, 'p0').money;
   act(s, 'p0', { type: 'roll' }, [3, 3]);
+  assert.equal(s.queue[0].kind, 'bribe');
+  act(s, 'p0', { type: 'bribe', opt: 'jail' });
   assert.equal(P(s, 'p0').pos, 10);
   assert.ok(P(s, 'p0').inJail);
   assert.equal(P(s, 'p0').money, m);
@@ -329,4 +331,137 @@ test('nadimak je očišćen od HTML znakova', () => {
   const s = newRoom('X', det, 0);
   const p = addPlayer(s, 'a', '<img src=x onerror=alert(1)>Mujo', null);
   assert.ok(!p.name.includes('<'));
+});
+
+// ---------- nove mehanike ----------
+
+test('auto se kupuje na stanici, stari se prodaje za pola', () => {
+  const s = game();
+  P(s, 'p0').pos = 2;
+  act(s, 'p0', { type: 'roll' }, [1, 2]); // 5 Stanica Sarajevo
+  assert.equal(s.queue[0].kind, 'buy');
+  act(s, 'p0', { type: 'decline' });
+  assert.equal(s.queue[0].kind, 'car');
+  const m = P(s, 'p0').money;
+  act(s, 'p0', { type: 'car', car: 'golf' });
+  assert.equal(P(s, 'p0').car, 'golf');
+  assert.equal(P(s, 'p0').money, m - 100);
+  s.queue.push({ kind: 'car', pid: 'p0' });
+  act(s, 'p0', { type: 'car', car: 'passat' });
+  assert.equal(P(s, 'p0').car, 'passat');
+  assert.equal(P(s, 'p0').money, m - 100 + 50 - 200);
+});
+
+test('Passat ne plaća stanicu, Golf pola, Mercedes vlasniku +10', () => {
+  const s = game();
+  s.owners[5] = { owner: 'p1', level: 0, mortgaged: false };
+  P(s, 'p0').car = 'passat'; P(s, 'p0').pos = 2;
+  let m = P(s, 'p0').money;
+  act(s, 'p0', { type: 'roll' }, [1, 2]);
+  assert.equal(P(s, 'p0').money, m);
+  const s2 = game();
+  s2.owners[5] = { owner: 'p1', level: 0, mortgaged: false };
+  P(s2, 'p0').car = 'golf'; P(s2, 'p0').pos = 2; P(s2, 'p1').car = 'mercedes';
+  m = P(s2, 'p0').money;
+  act(s2, 'p0', { type: 'roll' }, [1, 2]);
+  assert.equal(P(s2, 'p0').money, m - (12 + 10));
+});
+
+test('traktor po selu bez kuća džaba, s kućama pola', () => {
+  const s = game();
+  const buz = FIELDS.findIndex((f) => f.name === 'Buzuci');
+  s.owners[buz] = { owner: 'p1', level: 0, mortgaged: false };
+  P(s, 'p0').car = 'traktor'; P(s, 'p0').pos = buz - 3;
+  let m = P(s, 'p0').money;
+  act(s, 'p0', { type: 'roll' }, [1, 2]);
+  assert.equal(P(s, 'p0').money, m);
+  const s2 = game();
+  s2.owners[buz] = { owner: 'p1', level: 2, mortgaged: false };
+  P(s2, 'p0').car = 'traktor'; P(s2, 'p0').pos = buz - 3;
+  m = P(s2, 'p0').money;
+  act(s2, 'p0', { type: 'roll' }, [1, 2]);
+  assert.equal(P(s2, 'p0').money, m - FIELDS[buz].rent[2] / 2);
+});
+
+test('vlasnik Nove Bile bira platu ili krađu, auto ide prvo', () => {
+  const s = game();
+  s.owners[39] = { owner: 'p0', level: 0, mortgaged: false };
+  P(s, 'p1').car = 'mercedes';
+  P(s, 'p0').pos = 37;
+  act(s, 'p0', { type: 'roll' }, [1, 3]); // preko Starta na 1
+  assert.equal(s.queue[0].kind, 'steal');
+  act(s, 'p0', { type: 'steal', target: 'p1' }, [3]);
+  assert.equal(P(s, 'p0').car, 'mercedes');
+  assert.equal(P(s, 'p1').car, null);
+  const s2 = game();
+  s2.owners[39] = { owner: 'p0', level: 0, mortgaged: false };
+  P(s2, 'p0').pos = 37;
+  act(s2, 'p0', { type: 'roll' }, [1, 3]);
+  const m = P(s2, 'p1').money;
+  act(s2, 'p0', { type: 'steal', target: 'p1' }, [6]); // uhvaćen
+  assert.ok(P(s2, 'p0').inJail);
+  assert.equal(P(s2, 'p1').money, m);
+  const s3 = game();
+  s3.owners[39] = { owner: 'p0', level: 0, mortgaged: false };
+  P(s3, 'p0').pos = 37;
+  const m3 = P(s3, 'p0').money;
+  act(s3, 'p0', { type: 'roll' }, [1, 3]);
+  act(s3, 'p0', { type: 'steal' });
+  assert.equal(P(s3, 'p0').money, m3 + RULES.passStart);
+});
+
+test('mito: plati 100 i ostani vani, na kocki 1 otkriven', () => {
+  const s = game();
+  P(s, 'p0').pos = 26;
+  let m = P(s, 'p0').money;
+  act(s, 'p0', { type: 'roll' }, [1, 3]); // 30 Idi u Zenicu
+  assert.equal(s.queue[0].kind, 'bribe');
+  act(s, 'p0', { type: 'bribe', opt: 'pay' }, [4]);
+  assert.ok(!P(s, 'p0').inJail);
+  assert.equal(P(s, 'p0').money, m - 100);
+  assert.equal(s.pot, 100);
+  const s2 = game();
+  P(s2, 'p0').pos = 26;
+  act(s2, 'p0', { type: 'roll' }, [1, 3]);
+  act(s2, 'p0', { type: 'bribe', opt: 'pay' }, [1]);
+  assert.ok(P(s2, 'p0').inJail);
+});
+
+test('načelnik: tek od 3 igrača, izbori svakih 5 krugova, članarina na Startu, prima mito', () => {
+  const two = game(2);
+  two.round = 5; two.turn.pid = 'p1';
+  act(two, 'p1', { type: 'roll' }, [3, 4]); two.queue = [];
+  act(two, 'p1', { type: 'endTurn' });
+  assert.equal(two.mayor, null);
+  const s = game(3);
+  P(s, 'p2').money = 5000;
+  s.round = 5; s.turn.pid = 'p2';
+  act(s, 'p2', { type: 'roll' }, [3, 4]); s.queue = [];
+  act(s, 'p2', { type: 'endTurn' });
+  assert.equal(s.round, 6);
+  assert.equal(s.mayor, 'p2');
+  P(s, 'p0').pos = 37;
+  const m0 = P(s, 'p0').money, m2 = P(s, 'p2').money;
+  act(s, 'p0', { type: 'roll' }, [1, 3]);
+  assert.equal(P(s, 'p0').money, m0 + RULES.passStart - RULES.mayorFee);
+  assert.equal(P(s, 'p2').money, m2 + RULES.mayorFee);
+});
+
+test('kladionica: 1-3 gubi, 4-5 vraća ulog, 6 dobija 150', () => {
+  for (const [d, diff] of [[2, -50], [5, 0], [6, 100]]) {
+    const s = game();
+    P(s, 'p0').pos = 33;
+    const m = P(s, 'p0').money;
+    act(s, 'p0', { type: 'roll' }, [2, 3, d]); // 38 Kladionica
+    assert.equal(FIELDS[38].name, 'Kladionica');
+    assert.equal(P(s, 'p0').money, m + diff);
+  }
+});
+
+test('Didov auto daje Golfa, a ko već ima auto dobija 100 KM', () => {
+  const s = game();
+  setDeck(s, 'surprise', si('Didov auto'));
+  act(s, 'p0', { type: 'roll' }, [1, 1]);
+  assert.equal(P(s, 'p0').car, 'golf');
+  assert.equal(CARS.length, 4);
 });
