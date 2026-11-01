@@ -479,3 +479,24 @@ test('Didov auto daje Golfa, a ko već ima auto dobija 100 KM', () => {
   assert.equal(P(s, 'p0').car, 'golf');
   assert.equal(CARS.length, 4);
 });
+
+test('na petoj nadogradnji biraš hotel ili birtiju; birtija 80 % i propuštaš potez', () => {
+  const s = game();
+  s.owners[1] = { owner: 'p1', level: 4, mortgaged: false };
+  s.owners[3] = { owner: 'p1', level: 4, mortgaged: false };
+  s.turn.pid = 'p1'; s.turn.canRoll = false;
+  act(s, 'p1', { type: 'build', pos: 1, bar: true });
+  act(s, 'p1', { type: 'build', pos: 3 });
+  assert.ok(s.owners[1].bar);
+  assert.ok(!s.owners[3].bar);
+  act(s, 'p1', { type: 'endTurn' });
+  const m = P(s, 'p0').money;
+  act(s, 'p0', { type: 'roll' }, [1, 2]); // 3 Bugojno, hotel
+  assert.equal(P(s, 'p0').money, m - FIELDS[3].rent[5]);
+  assert.equal(P(s, 'p0').skip, 0);
+  P(s, 'p0').pos = 39; s.turn.canRoll = true;
+  const m2 = P(s, 'p0').money;
+  act(s, 'p0', { type: 'roll' }, [1, 1]); // preko Starta na 1, birtija
+  assert.equal(P(s, 'p0').money, m2 + RULES.passStart - Math.round(FIELDS[1].rent[5] * RULES.barRate));
+  assert.equal(P(s, 'p0').skip, 1);
+});

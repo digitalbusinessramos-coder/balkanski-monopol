@@ -72,6 +72,7 @@ export function rentFor(s, pos, diceSum) {
   const f = FIELDS[pos], o = s.owners[pos];
   if (!o || o.mortgaged) return 0;
   if (f.kind === 'prop') {
+    if (o.level === 5 && o.bar) return Math.round(f.rent[5] * RULES.barRate);
     if (o.level > 0) return f.rent[o.level];
     return ownsGroup(s, o.owner, f.group) ? f.rent[0] * 2 : f.rent[0];
   }
@@ -184,6 +185,7 @@ function land(s, p, diceSum) {
       const owner = P(s, o.owner);
       log(s, `${p.name} plaća ${km(rent)} kirije igraču ${owner.name} za ${f.name}${why ? ` (${why})` : ''}.`);
       pay(s, p, o.owner, rent, `kirija za ${f.name}`);
+      if (o.level === 5 && o.bar && rent > 0) { p.skip += 1; log(s, `${p.name} se zapio u birtiji na ${f.name} i propušta sljedeći potez.`); }
       if (f.kind === 'station') s.queue.push({ kind: 'car', pid: p.id });
       return;
     }
@@ -642,12 +644,13 @@ export function applyAction(s, pid, a, ctx) {
       const g = groupOf(f.group);
       if (!ownsGroup(s, p.id, f.group)) fail('Za gradnju trebaš cijelu grupu.');
       if (g.some((i) => s.owners[i].mortgaged)) fail('Neki posjed u grupi je pod hipotekom.');
-      if (o.level >= 5) fail('Tu je već birtija.');
+      if (o.level >= 5) fail('Tu je već hotel ili birtija.');
       if (o.level > Math.min(...g.map((i) => level(s, i)))) fail('Gradi ravnomjerno: prvo na drugim poljima grupe.');
       const cost = HOUSE_COST[f.group];
       if (p.money < cost) fail('Nemaš dovoljno gotovine.');
       p.money -= cost; o.level += 1;
-      log(s, `${p.name} gradi ${o.level === 5 ? 'birtiju' : 'kućicu'} na ${f.name} (${km(cost)}).`);
+      if (o.level === 5) o.bar = !!a.bar;
+      log(s, `${p.name} gradi ${o.level === 5 ? (o.bar ? 'birtiju' : 'hotel') : 'kućicu'} na ${f.name} (${km(cost)}).`);
       break;
     }
     case 'sell': {
@@ -656,7 +659,7 @@ export function applyAction(s, pid, a, ctx) {
       if (!o.level) fail('Nema kućica za prodaju.');
       if (o.level < Math.max(...groupOf(f.group).map((i) => level(s, i)))) fail('Prodaji ravnomjerno: prvo s drugih polja grupe.');
       const back = Math.floor(HOUSE_COST[f.group] / 2);
-      o.level -= 1; p.money += back;
+      o.level -= 1; p.money += back; o.bar = false;
       log(s, `${p.name} prodaje nadogradnju na ${f.name} za ${km(back)}.`);
       break;
     }

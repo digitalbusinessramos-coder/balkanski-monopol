@@ -147,7 +147,7 @@ function renderHome() {
         <h2>Uđi u sobu</h2>
         <label class="fld">Kod sobe<input id="j-code" name="code" maxlength="8" autocomplete="off" autocapitalize="characters" required value="${esc(inv)}" placeholder="npr. K7MQ2"></label>
         <label class="fld">Nadimak<input id="j-name" name="name" maxlength="18" required value="${nm}" placeholder="Kako da te zovemo?"></label>
-        ${figurePicker('j-fig', [], 'golf')}
+        ${figurePicker('j-fig', [], 'nokia')}
         <button class="btn primary" type="submit">Uđi</button>
       </form>
       <form class="panel" id="f-new">
@@ -418,10 +418,10 @@ function updateBoardMarks() {
     const band = cell.querySelector('.band');
     if (band) {
       const lv = o?.level ?? 0;
-      const want = lv === 5 ? 'H' : String(lv);
+      const want = lv === 5 ? (o.bar ? 'B' : 'H') : String(lv);
       if (band.dataset.lv !== want) {
         band.dataset.lv = want;
-        band.innerHTML = lv === 5 ? '<span class="hotel"></span>' : '<span class="house"></span>'.repeat(lv);
+        band.innerHTML = lv === 5 ? (o.bar ? '<span class="bar" title="Birtija"></span>' : '<span class="hotel" title="Hotel"></span>') : '<span class="house"></span>'.repeat(lv);
       }
     }
     cell.classList.toggle('here', st.players.some((p) => !p.bankrupt && p.pos === i && p.id === st.turn?.pid));
@@ -600,7 +600,11 @@ function manageButtons(i) {
   const can = canManage(), free = can && !st.queue.length, b = [];
   if (f.group) {
     const g = groupOf(f.group), full = g.every((k) => st.owners[k]?.owner === S.me);
-    if (full && o.level < 5 && free) b.push(`<button class="btn" data-a="build" data-pos="${i}" type="button">${o.level === 4 ? 'Gradi birtiju' : 'Gradi kućicu'} (${km(HOUSE_COST[f.group])})</button>`);
+    if (full && o.level < 4 && free) b.push(`<button class="btn" data-a="build" data-pos="${i}" type="button">Gradi kućicu (${km(HOUSE_COST[f.group])})</button>`);
+    if (full && o.level === 4 && free) {
+      b.push(`<button class="btn" data-a="build" data-pos="${i}" type="button">Gradi hotel (${km(HOUSE_COST[f.group])})</button>`);
+      b.push(`<button class="btn" data-a="build" data-bar="1" data-pos="${i}" type="button">Gradi birtiju (${km(HOUSE_COST[f.group])})</button>`);
+    }
     if (o.level > 0 && can) b.push(`<button class="btn" data-a="sell" data-pos="${i}" type="button">Prodaj nadogradnju (+${km(HOUSE_COST[f.group] / 2)})</button>`);
     if (!o.mortgaged && can && !g.some((k) => level(k) > 0)) b.push(`<button class="btn" data-a="mortgage" data-pos="${i}" type="button">Hipoteka (+${km(f.price / 2)})</button>`);
   } else if (!o.mortgaged && can) b.push(`<button class="btn" data-a="mortgage" data-pos="${i}" type="button">Hipoteka (+${km(f.price / 2)})</button>`);
@@ -610,7 +614,7 @@ function manageButtons(i) {
 }
 function bindManage(root, after) {
   root.querySelectorAll('[data-a]').forEach((b) => b.addEventListener('click', async () => {
-    await send({ type: b.dataset.a, pos: Number(b.dataset.pos) });
+    await send({ type: b.dataset.a, pos: Number(b.dataset.pos), bar: b.dataset.bar === '1' });
     after();
   }));
 }
@@ -620,7 +624,7 @@ function openField(i, auto = false) {
   const h = st?.queue[0];
   const buying = h?.kind === 'buy' && h.pid === S.me && h.pos === i;
   const lv = o?.level ?? 0;
-  const owner = o ? `<p class="own">Vlasnik: <b style="color:${P(o.owner).color}">${nameOf(o.owner)}</b>${lv ? `, ${lv === 5 ? 'birtija' : `${lv} ${lv === 1 ? 'kućica' : 'kućice'}`}` : ''}${o.mortgaged ? ', pod hipotekom' : ''}</p>` : (f.price ? '<p class="own">Slobodno za kupnju.</p>' : '');
+  const owner = o ? `<p class="own">Vlasnik: <b style="color:${P(o.owner).color}">${nameOf(o.owner)}</b>${lv ? `, ${lv === 5 ? (o.bar ? 'birtija' : 'hotel') : `${lv} ${lv === 1 ? 'kućica' : 'kućice'}`}` : ''}${o.mortgaged ? ', pod hipotekom' : ''}</p>` : (f.price ? '<p class="own">Slobodno za kupnju.</p>' : '');
   const buy = buying ? `<div class="manage"><button class="btn primary" id="m-buy" type="button" ${me().money < f.price ? 'disabled' : ''}>Kupi za ${km(f.price)}</button><button class="btn" id="m-dec" type="button">Ne kupujem</button></div>${me().money < f.price ? '<p class="hint">Nemaš dovoljno gotovine. Možeš uzeti hipoteku na drugi posjed.</p>' : ''}` : '';
   const m = openModal(`${deedHTML(i)}${owner}${buy}${st ? manageButtons(i) : ''}<button class="btn" data-close type="button">Zatvori</button>`, { auto, cls: 'field' });
   m.querySelector('#m-buy')?.addEventListener('click', async () => { closeModal(); await send({ type: 'buy' }); });
@@ -633,7 +637,7 @@ function openMine() {
   const mine = ownedBy(S.me).sort((a, b) => a - b);
   const rows = mine.map((i) => {
     const o = st.owners[i], f = FIELDS[i];
-    return `<div class="mine-row"><button class="mine-name" data-open="${i}" type="button"><span class="sw" style="background:${f.group ? GROUP_COLOR[f.group] : '#fff'}"></span>${esc(f.name)}<small>${o.level ? (o.level === 5 ? 'birtija' : `${o.level} kuć.`) : ''}${o.mortgaged ? ' hipoteka' : ''}</small></button>${manageButtons(i)}</div>`;
+    return `<div class="mine-row"><button class="mine-name" data-open="${i}" type="button"><span class="sw" style="background:${f.group ? GROUP_COLOR[f.group] : '#fff'}"></span>${esc(f.name)}<small>${o.level ? (o.level === 5 ? (o.bar ? 'birtija' : 'hotel') : `${o.level} kuć.`) : ''}${o.mortgaged ? ' hipoteka' : ''}</small></button>${manageButtons(i)}</div>`;
   }).join('');
   const m = openModal(`<h2>Moji posjedi</h2>${rows || '<p>Još nemaš posjeda.</p>'}<button class="btn" data-close type="button">Zatvori</button>`, { cls: 'list' });
   m.querySelectorAll('[data-open]').forEach((b) => b.addEventListener('click', () => openField(Number(b.dataset.open))));
@@ -757,7 +761,7 @@ function openRules() {
   <h3>Početak</h3><p>Svako dobiva ${km(RULES.startMoney)}. Svaki prolazak preko Starta donosi ${km(RULES.passStart)}, a ko stane baš na Start dobiva duplo, ${km(RULES.passStart * 2)}. Redoslijed igrača se bira nasumično.</p>
   <h3>Potez</h3><p>Bacaš dvije kockice i ideš naprijed. Duple kockice daju novo bacanje. Tri duple zaredom vode ravno u KP dom Zenica.</p>
   <h3>Kupnja i kirija</h3><p>Slobodan posjed možeš kupiti po cijeni na polju. Ako ga ne kupiš, ostaje banci (u ovoj verziji <b>nema aukcije</b>). Kad staneš na tuđi posjed, plaćaš kiriju sa vlasničkog lista. Ko ima cijelu grupu boja, na praznim posjedima naplaćuje duplu kiriju. Stanice: 25, 50, 100 ili 200 KM prema broju stanica vlasnika. Režije: 4 puta zbir kockica, a s obje režije 10 puta.</p>
-  <h3>Gradnja</h3><p>Graditi možeš na svom potezu kad imaš cijelu grupu i nijedan posjed u njoj nije pod hipotekom. Gradi se ravnomjerno: najviše jedna kućica razlike unutar grupe. Nakon četiri kućice dolazi birtija (kao hotel). Nadogradnje se prodaju banci za pola cijene, također ravnomjerno. <b>Broj kućica nije ograničen.</b></p>
+  <h3>Gradnja</h3><p>Graditi možeš na svom potezu kad imaš cijelu grupu i nijedan posjed u njoj nije pod hipotekom. Gradi se ravnomjerno: najviše jedna kućica razlike unutar grupe. Nakon četiri kućice biraš hotel ili birtiju, za svaki grad posebno. Hotel naplaćuje punu kiriju. Birtija naplaćuje ${Math.round(RULES.barRate * 100)} % od toga, ali ko stane zapije se i propušta sljedeći potez. Nadogradnje se prodaju banci za pola cijene, također ravnomjerno. <b>Broj kućica nije ograničen.</b></p>
   <h3>Hipoteka</h3><p>Hipoteka donosi 50 % kupovne cijene, a otkup košta 55 %. Na posjedu pod hipotekom nema kirije. Prije hipoteke treba prodati kućice u toj grupi.</p>
   <h3>Dug i bankrot</h3><p>Kad nemaš dovoljno gotovine za plaćanje, nastaje dug. Prodaj nadogradnje ili uzmi hipoteku pa plati. Ako ne možeš, proglašavaš bankrot. Ako duguješ igraču, on dobiva svu tvoju imovinu (posjede pod hipotekom preuzima takve, bez dodatne kamate). Ako duguješ banci, posjedi se vraćaju banci.</p>
   <h3>Trgovanje</h3><p>Na svom potezu možeš ponuditi novac, posjede i vikendicu drugom igraču. Ponuda vrijedi tek kad je drugi igrač sam prihvati. Grupe s kućicama se ne mijenjaju.</p>
@@ -769,7 +773,7 @@ function openRules() {
   <h3>Mito</h3><p>Kad trebaš u Zenicu (polje, kartica ili tri duple), možeš podmitit s ${km(RULES.bribe)} i ostat vani. Mito ide načelniku, a bez načelnika u bubanj. Ako padne 1, mito je otkriven: pare idu u bubanj, a ti u Zenicu. Načelnik ne može podmitit sam sebe.</p>
   <h3>Kladionica</h3><p>Ko stane, zamisli broj od 1 do 5 (ili se ne kladi). Svi ostali pogađaju. Ko pogodi, dobija ${km(RULES.betWin)} od njega, a ko promaši, plaća mu ${km(RULES.betStake)}. Kompjuter ne baca ništa, broj se ne vidi dok svi ne pogode.</p>
   <h3>Kod babe</h3><p>Sve što se plaća banci (porezi, kartice, kazne i izlazak iz Zenice) ide baki u bubanj. Ko stane na polje Kod babe, pokupi cijeli bubanj. Koliko je unutra piše gore pored kruga.</p>
-  <h3>Kartice</h3><p>Dobici idu iz banke, a plaćanja baki u bubanj, osim kad kartica kaže drugačije. „Bosna ulazi u EU” vodi na sljedeću stanicu naprijed, uz platu ako prođeš Start. Kartice koje vraćaju unazad ne plaćaju Start. „Majstor”: 40 KM po nadogradnji (birtija se broji kao pet). „Ko časti?”: 10 KM svakom drugom igraču u igri. „Hari ili Željo?”: biraš suparnika, ti si za Harija, on za Želju. Hari uvijek dobija, osim svakog trećeg kruga. Pobjednik nosi 50 KM. „Vikendica” čuvaš dok ti ne zatreba za izlazak iz Zenice.</p>
+  <h3>Kartice</h3><p>Dobici idu iz banke, a plaćanja baki u bubanj, osim kad kartica kaže drugačije. „Bosna ulazi u EU” vodi na sljedeću stanicu naprijed, uz platu ako prođeš Start. Kartice koje vraćaju unazad ne plaćaju Start. „Majstor”: 40 KM po nadogradnji (hotel i birtija se broje kao pet). „Ko časti?”: 10 KM svakom drugom igraču u igri. „Hari ili Željo?”: biraš suparnika, ti si za Harija, on za Želju. Hari uvijek dobija, osim svakog trećeg kruga. Pobjednik nosi 50 KM. „Vikendica” čuvaš dok ti ne zatreba za izlazak iz Zenice.</p>
   <h3>Kraj partije</h3><p><b>Brza:</b> nakon ${RULES.fastRounds} punih krugova oko stola pobjeđuje najveća imovina (gotovina, posjedi po kupovnoj cijeni ili pola ako su pod hipotekom, i nadogradnje po cijeni gradnje). <b>Klasična:</b> pobjeđuje zadnji igrač koji nije bankrotirao.</p>
   <h3>Ako neko ode</h3><p>Ako igrač na kojeg se čeka nije aktivan 1 minutu, drugi ga mogu preskočiti (ne kupuje, a kod kartica s izborom plaća). Nakon 2 minute ga mogu izbaciti, a njegova imovina ide banci ili vjerovniku. Ko osvježi stranicu ili izgubi vezu, vraća se preko istog linka na istom uređaju.</p>
   <h3>Napomena</h3><p>Sav novac je igraći. Satirične kartice su izmišljene situacije, a ne vijesti ni izjave stvarnih osoba.</p>

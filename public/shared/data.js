@@ -27,6 +27,7 @@ export const RULES = {
   betWin: 150,
   mercedesBonus: 10,
   mercedesService: 30,
+  barRate: 0.8, // birtija naplaćuje 80 % hotelske kirije, ali gost propušta sljedeći potez
 };
 
 // Auta se kupuju na stanicama. Igrač ima najviše jedan auto.
@@ -99,11 +100,11 @@ export const groupOf = (g) => FIELDS.map((f, i) => (f.group === g ? i : -1)).fil
 
 export const FIGURES = [
   { id: 'dzezva', name: 'Džezva' },
-  { id: 'golf', name: 'Golf dvojka' },
+  { id: 'nokia', name: 'Nokia' },
   { id: 'fildzan', name: 'Fildžan' },
-  { id: 'subara', name: 'Šubara' },
-  { id: 'kanister', name: 'Kanister' },
-  { id: 'traktor', name: 'Traktor' },
+  { id: 'harmonika', name: 'Harmonika' },
+  { id: 'krigla', name: 'Krigla' },
+  { id: 'rakija', name: 'Čašica rakije' },
 ];
 export const PLAYER_COLORS = ['#1f4fa3', '#d2242a', '#1f9a4b', '#8e44ad', '#e67e22', '#16a3a3'];
 
