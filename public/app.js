@@ -429,7 +429,7 @@ function statusText() {
   }
   if (st.trade) return `${who(st.trade.from)} ${st.trade.from === S.me ? 'čekaš odgovor na ponudu.' : `je ponudio trgovinu igraču ${st.trade.to === S.me ? 'tebi' : nameOf(st.trade.to)}.`}`;
   const t = st.turn, p = P(t.pid), you = t.pid === S.me;
-  if (p.inJail && !t.rolled) return `${who(t.pid)} ${you ? 'si' : 'je'} u Zenici. ${you ? 'Plati, iskoristi pomilovanje ili pokušaj s duplim kockicama.' : 'Bira kako izaći.'}`;
+  if (p.inJail && !t.rolled) return `${who(t.pid)} ${you ? 'si' : 'je'} u Zenici. ${you ? 'Plati, iskoristi vikendicu ili pokušaj s duplim kockicama.' : 'Bira kako izaći.'}`;
   if (t.canRoll) return `${who(t.pid)} ${you ? 'bacaš' : 'baca'} kockice.`;
   return `${who(t.pid)} ${you ? 'možeš graditi, trgovati ili završiti potez.' : 'završava potez.'}`;
 }
@@ -437,7 +437,7 @@ function statusText() {
 function updateGame() {
   const st = S.state;
   if (!S.boardBuilt) return;
-  $('#round').textContent = st.mode === 'fast' ? `Krug ${Math.min(st.round, RULES.fastRounds)} od ${RULES.fastRounds}` : `Krug ${st.round}`;
+  $('#round').textContent = `${st.mode === 'fast' ? `Krug ${Math.min(st.round, RULES.fastRounds)} od ${RULES.fastRounds}` : `Krug ${st.round}`} · Kod babe ${km(st.pot || 0)}`;
   updateBoardMarks();
   // novo bacanje: kockice se protresu, figurica hoda polje po polje
   const newRoll = st.lastRoll && st.lastRoll.n > S.seen.roll;
@@ -476,7 +476,7 @@ function renderPlayers() {
   $('#players').innerHTML = st.players.map((p) => {
     const props = ownedBy(p.id).sort((a, b) => a - b);
     const away = !p.bankrupt && now() - (S.presence[p.id] || 0) > SKIP_MS;
-    const tags = [p.id === S.me ? 'ti' : '', p.inJail ? 'Zenica' : '', p.skip ? 'propušta potez' : '', p.pardons.length ? `pomilovanje ×${p.pardons.length}` : '', away ? 'nije tu' : ''].filter(Boolean);
+    const tags = [p.id === S.me ? 'ti' : '', p.inJail ? 'Zenica' : '', p.skip ? 'propušta potez' : '', p.pardons.length ? `vikendica ×${p.pardons.length}` : '', away ? 'nije tu' : ''].filter(Boolean);
     return `<div class="pl${st.turn?.pid === p.id ? ' active' : ''}${p.bankrupt ? ' out' : ''}">
       <span class="mini-tok" style="--c:${p.color}">${figureSVG(p.figure)}</span>
       <span class="n" style="color:${p.color}">${esc(p.name)}</span>
@@ -525,7 +525,7 @@ function renderActions() {
   } else if (!h && t.pid === S.me) {
     if (m.inJail && !t.rolled) {
       out.push(btn(`Plati ${km(RULES.jailFine)} i izađi`, () => send({ type: 'jailPay' }), '', m.money < RULES.jailFine));
-      if (m.pardons.length) out.push(btn('Iskoristi pomilovanje', () => send({ type: 'jailPardon' })));
+      if (m.pardons.length) out.push(btn('Iskoristi vikendicu', () => send({ type: 'jailPardon' })));
     }
     if (t.canRoll) out.push(btn(m.inJail && !t.rolled ? 'Baci za duple' : 'Baci kockice', () => send({ type: 'roll' }), 'primary'));
     else out.push(btn('Završi potez', () => send({ type: 'endTurn' }), 'primary'));
@@ -621,8 +621,10 @@ function showCard(c) {
 }
 
 function showDuel(d) {
-  const rows = d.rolls.map(([x, y]) => `<div class="duel-row"><span>${nameOf(d.a)}</span>${dieHTML(x)}<b>:</b>${dieHTML(y)}<span>${nameOf(d.b)}</span></div>`).join('');
-  openModal(`<h2>Ćevap-duel</h2><p class="hint">Hari ili Željo? Veći broj nosi 50 KM.</p>${rows}<p class="duel-win">${nameOf(d.winner)} dobiva 50 KM.</p><button class="btn primary" data-close type="button">U redu</button>`, { cls: 'duel' });
+  const amt = km(d.amount ?? 50);
+  const row = `<div class="duel-row"><span>${nameOf(d.a)} (Hari)</span><b>:</b><span>${nameOf(d.b)} (Željo)</span></div>`;
+  const why = d.zeljo ? 'Danas sudac bio iz Sarajeva.' : 'Pa naravno, Travnički su najbolji.';
+  openModal(`<h2>Hari ili Željo?</h2>${row}<p class="hint">${why}</p><p class="duel-win">${nameOf(d.winner)} dobiva ${amt}.</p><button class="btn primary" data-close type="button">U redu</button>`, { cls: 'duel' });
 }
 
 function sideEditor(prefix, pid, title) {
@@ -631,7 +633,7 @@ function sideEditor(prefix, pid, title) {
   return `<fieldset class="tside"><legend>${title}</legend>
     <label class="fld">Novac (KM)<input type="number" inputmode="numeric" min="0" max="${p.money}" step="10" id="${prefix}-money" value="0"></label>
     <div class="tprops">${props.map((i) => `<label class="tprop"><input type="checkbox" value="${i}" name="${prefix}-p"><span class="sw" style="background:${FIELDS[i].group ? GROUP_COLOR[FIELDS[i].group] : '#fff'}"></span>${esc(FIELDS[i].name)}${st.owners[i].mortgaged ? ' (hipoteka)' : ''}</label>`).join('') || '<span class="hint">Nema posjeda za trgovinu.</span>'}</div>
-    ${p.pardons.length ? `<label class="tprop"><input type="checkbox" id="${prefix}-pardon">Pomilovanje</label>` : ''}
+    ${p.pardons.length ? `<label class="tprop"><input type="checkbox" id="${prefix}-pardon">Vikendica</label>` : ''}
   </fieldset>`;
 }
 function readSide(root, prefix) {
@@ -661,7 +663,7 @@ function tradeList(side) {
   const parts = [];
   if (side.money) parts.push(km(side.money));
   side.props.forEach((i) => parts.push(`<span class="sw" style="background:${FIELDS[i].group ? GROUP_COLOR[FIELDS[i].group] : '#fff'}"></span>${esc(FIELDS[i].name)}${S.state.owners[i]?.mortgaged ? ' (hipoteka)' : ''}`));
-  if (side.pardons) parts.push('Pomilovanje');
+  if (side.pardons) parts.push('Vikendica');
   return parts.length ? `<ul>${parts.map((x) => `<li>${x}</li>`).join('')}</ul>` : '<p class="hint">Ništa</p>';
 }
 function openTradeOffer() {
@@ -698,16 +700,17 @@ function showGameOver() {
 
 function openRules() {
   openModal(`<h2>Pravila igre</h2><div class="rules">
-  <h3>Početak</h3><p>Svako dobiva ${km(RULES.startMoney)}. Svaki prolazak ili stajanje na Start donosi ${km(RULES.passStart)}. Redoslijed igrača se bira nasumično.</p>
+  <h3>Početak</h3><p>Svako dobiva ${km(RULES.startMoney)}. Svaki prolazak preko Starta donosi ${km(RULES.passStart)}, a ko stane baš na Start dobiva duplo, ${km(RULES.passStart * 2)}. Redoslijed igrača se bira nasumično.</p>
   <h3>Potez</h3><p>Bacaš dvije kockice i ideš naprijed. Duple kockice daju novo bacanje. Tri duple zaredom vode ravno u KP dom Zenica.</p>
   <h3>Kupnja i kirija</h3><p>Slobodan posjed možeš kupiti po cijeni na polju. Ako ga ne kupiš, ostaje banci (u ovoj verziji <b>nema aukcije</b>). Kad staneš na tuđi posjed, plaćaš kiriju sa vlasničkog lista. Ko ima cijelu grupu boja, na praznim posjedima naplaćuje duplu kiriju. Stanice: 25, 50, 100 ili 200 KM prema broju stanica vlasnika. Režije: 4 puta zbir kockica, a s obje režije 10 puta.</p>
   <h3>Gradnja</h3><p>Graditi možeš na svom potezu kad imaš cijelu grupu i nijedan posjed u njoj nije pod hipotekom. Gradi se ravnomjerno: najviše jedna kućica razlike unutar grupe. Nakon četiri kućice dolazi hotel. Nadogradnje se prodaju banci za pola cijene, također ravnomjerno. <b>Broj kućica nije ograničen.</b></p>
   <h3>Hipoteka</h3><p>Hipoteka donosi 50 % kupovne cijene, a otkup košta 55 %. Na posjedu pod hipotekom nema kirije. Prije hipoteke treba prodati kućice u toj grupi.</p>
   <h3>Dug i bankrot</h3><p>Kad nemaš dovoljno gotovine za plaćanje, nastaje dug. Prodaj nadogradnje ili uzmi hipoteku pa plati. Ako ne možeš, proglašavaš bankrot. Ako duguješ igraču, on dobiva svu tvoju imovinu (posjede pod hipotekom preuzima takve, bez dodatne kamate). Ako duguješ banci, posjedi se vraćaju banci.</p>
-  <h3>Trgovanje</h3><p>Na svom potezu možeš ponuditi novac, posjede i pomilovanje drugom igraču. Ponuda vrijedi tek kad je drugi igrač sam prihvati. Grupe s kućicama se ne mijenjaju.</p>
-  <h3>KP dom Zenica</h3><p>Izlaz: duple kockice, pomilovanje ili ${km(RULES.jailFine)} prije bacanja. Nakon trećeg neuspjelog pokušaja plaćaš ${km(RULES.jailFine)} i ideš za bačeni broj. Odlazak u zatvor nikad ne naplaćuje Start.</p>
-  <h3>Kratki zatvor</h3><p>Kod kartica „Javio se Crni” i „Snimljen razgovor” biraš: platiti ili jedan potez u Zenici. Jedan potez znači da ideš na polje KP dom Zenica, propuštaš svoj sljedeći potez i onda normalno nastavljaš.</p>
-  <h3>Kartice</h3><p>Plaćanja idu banci, a dobici iz banke, osim kad kartica kaže drugačije. „Čovićev izborni zakon” daje jedno dodatno bacanje, najviše jednom po potezu. „Bosna ulazi u EU” vodi na sljedeću stanicu naprijed, uz bonus ako prođeš Start. Kartice koje vraćaju unazad ne plaćaju Start. „Građevinska dozvola”: 40 KM po nadogradnji (hotel se broji kao pet). „Rođendan u kafani”: 10 KM svakom drugom igraču u igri. „Hari ili Željo?”: biraš suparnika, server baca za oboje, veći broj dobiva 50 KM, a izjednačenje se ponavlja. „Pomilovanje” čuvaš dok ga ne iskoristiš.</p>
+  <h3>Trgovanje</h3><p>Na svom potezu možeš ponuditi novac, posjede i vikendicu drugom igraču. Ponuda vrijedi tek kad je drugi igrač sam prihvati. Grupe s kućicama se ne mijenjaju.</p>
+  <h3>KP dom Zenica</h3><p>Izlaz: duple kockice, vikendica ili ${km(RULES.jailFine)} prije bacanja. Nakon trećeg neuspjelog pokušaja plaćaš ${km(RULES.jailFine)} i ideš za bačeni broj. Odlazak u zatvor nikad ne naplaćuje Start.</p>
+  <h3>Kratki zatvor</h3><p>Kod kartica „Javio se Crni” i „Među nama” biraš: platiti ili jedan potez u Zenici. Jedan potez znači da ideš na polje KP dom Zenica, propuštaš svoj sljedeći potez i onda normalno nastavljaš.</p>
+  <h3>Kod babe</h3><p>Sve što se plaća banci (porezi, kartice, kazne i izlazak iz Zenice) ide baki u bubanj. Ko stane na polje Kod babe, pokupi cijeli bubanj. Koliko je unutra piše gore pored kruga.</p>
+  <h3>Kartice</h3><p>Dobici idu iz banke, a plaćanja baki u bubanj, osim kad kartica kaže drugačije. „Bosna ulazi u EU” vodi na sljedeću stanicu naprijed, uz platu ako prođeš Start. Kartice koje vraćaju unazad ne plaćaju Start. „Majstor”: 40 KM po nadogradnji (hotel se broji kao pet). „Ko časti?”: 10 KM svakom drugom igraču u igri. „Hari ili Željo?”: biraš suparnika, ti si za Harija, on za Želju. Hari uvijek dobija, osim svakog trećeg kruga. Pobjednik nosi 50 KM. „Vikendica” čuvaš dok ti ne zatreba za izlazak iz Zenice.</p>
   <h3>Kraj partije</h3><p><b>Brza:</b> nakon ${RULES.fastRounds} punih krugova oko stola pobjeđuje najveća imovina (gotovina, posjedi po kupovnoj cijeni ili pola ako su pod hipotekom, i nadogradnje po cijeni gradnje). <b>Klasična:</b> pobjeđuje zadnji igrač koji nije bankrotirao.</p>
   <h3>Ako neko ode</h3><p>Ako igrač na kojeg se čeka nije aktivan 1 minutu, drugi ga mogu preskočiti (ne kupuje, a kod kartica s izborom plaća). Nakon 2 minute ga mogu izbaciti, a njegova imovina ide banci ili vjerovniku. Ko osvježi stranicu ili izgubi vezu, vraća se preko istog linka na istom uređaju.</p>
   <h3>Napomena</h3><p>Sav novac je igraći. Satirične kartice su izmišljene situacije, a ne vijesti ni izjave stvarnih osoba.</p>

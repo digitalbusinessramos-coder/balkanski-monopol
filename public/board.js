@@ -54,9 +54,9 @@ export { IC };
 
 // Male ilustracije uz pojedine kartice (skromno, tekst ostaje glavni).
 const CARD_ILL = {
-  'Travnička diploma': 'cevapi', 'Hari ili Željo?': 'cevapi', 'Treći ključ': 'kljuc', 'Javio se Crni': 'telefon',
-  'Snimljen razgovor': 'telefon', 'Peče se rakija': 'rakija', 'Pravi se pekmez': 'tegla', 'Čovićev izborni zakon': 'kocka',
-  'Bosna ulazi u EU': 'vlak', 'Pomilovanje': 'kljucevi',
+  'Diploma': 'cevapi', 'Hari ili Željo?': 'cevapi', 'Ključevi': 'kljuc', 'Javio se Crni': 'telefon',
+  'Među nama': 'telefon', 'Peče se rakija': 'rakija', 'Degustacija': 'tegla', 'Svinjokolja': 'rakija',
+  'Bosna ulazi u EU': 'vlak', 'Vikendica': 'kljucevi',
 };
 
 export function pos(i){ // red, stupac, rotacija
@@ -71,7 +71,7 @@ export const TOK = {
  fildzan:`<svg viewBox="0 0 32 32"><path d="M7 11h18l-3 14H10z" fill="#b9bcc0" stroke="#3a3d42" stroke-width="1.3"/><ellipse cx="16" cy="27" rx="11" ry="2.6" fill="#a7aaae" stroke="#3a3d42"/><path d="M9 15h14" stroke="#7d8187"/><path d="M11 12h3v11h-2z" fill="#eef0f2" opacity=".7"/></svg>`,
  subara:`<svg viewBox="0 0 32 32"><path d="M6 20c0-8 4-13 10-13s10 5 10 13z" fill="#b9bcc0" stroke="#3a3d42" stroke-width="1.3"/><path d="M4 20h24v5H4z" fill="#8d9096" stroke="#3a3d42" stroke-width="1.3"/><path d="M9 12q7-4 14 0M8 16q8-4 16 0" stroke="#7d8187" fill="none"/></svg>`,
  kanister:`<svg viewBox="0 0 32 32"><path d="M7 9h14l4 4v15H7z" fill="#b9bcc0" stroke="#3a3d42" stroke-width="1.3" stroke-linejoin="round"/><path d="M10 9V5h6v4" fill="none" stroke="#3a3d42" stroke-width="2"/><path d="M21 9l3-4h3v4" fill="#9ea2a7" stroke="#3a3d42" stroke-width="1.3"/><path d="M10 14l11 11M21 14 10 25" stroke="#7d8187" stroke-width="1.5"/></svg>`,
- kljuc:`<svg viewBox="0 0 32 32"><circle cx="10" cy="16" r="6.5" fill="#b9bcc0" stroke="#3a3d42" stroke-width="1.3"/><circle cx="10" cy="16" r="2.2" fill="#e8eaec" stroke="#3a3d42"/><path d="M16 14.5h13v3h-2v3h-3v-3h-2v2h-3v-2h-3z" fill="#b9bcc0" stroke="#3a3d42" stroke-width="1.2" stroke-linejoin="round"/></svg>`
+ traktor:`<svg viewBox="0 0 32 32"><path d="M4 21v-6h9l2-6h7v6h5v6z" fill="#b9bcc0" stroke="#3a3d42" stroke-width="1.3" stroke-linejoin="round"/><path d="M16 10h5v5h-5z" fill="#e8eaec" stroke="#3a3d42"/><path d="M24 9v6" stroke="#3a3d42" stroke-width="1.6"/><circle cx="10" cy="22" r="6" fill="#3a3d42"/><circle cx="10" cy="22" r="2.4" fill="#b9bcc0"/><circle cx="25" cy="24" r="4" fill="#3a3d42"/><circle cx="25" cy="24" r="1.6" fill="#b9bcc0"/></svg>`
 };
 
 export function cellHTML(f, i) {
@@ -131,12 +131,12 @@ function person(cx,o){
  s+=`<circle cx="${cx-44}" cy="380" r="6" fill="${o.pin}" ${k} stroke-width="2"/>`;
  return s+`</g>`;
 }
-function bubble(cx,cy,w,h,tx,ty,lines){
+function bubble(cx,cy,w,h,tx,ty,lines,fs=16){
  const k='stroke="#141414" stroke-width="3" stroke-linejoin="round"';
  return `<path d="M${cx-18} ${cy+h/2-6} L${tx} ${ty} L${cx+10} ${cy+h/2-4}" fill="#fff" ${k}/>
  <ellipse cx="${cx}" cy="${cy}" rx="${w/2}" ry="${h/2}" fill="#fff" ${k}/>
  <path d="M${cx-14} ${cy+h/2-8} L${tx} ${ty} L${cx+8} ${cy+h/2-6}" fill="#fff"/>
- <text x="${cx}" y="${cy-(lines.length-1)*9+5}" text-anchor="middle" font-family="'Comic Neue','Comic Sans MS',cursive" font-weight="700" font-size="16" fill="#141414">${lines.map((l,i)=>`<tspan x="${cx}" dy="${i?18:0}">${l}</tspan>`).join('')}</text>`;
+ <text x="${cx}" y="${cy-(lines.length-1)*(fs+2)/2+fs*0.3}" text-anchor="middle" font-family="'Comic Neue','Comic Sans MS',cursive" font-weight="700" font-size="${fs}" fill="#141414">${lines.map((l,i)=>`<tspan x="${cx}" dy="${i?fs+2:0}">${l}</tspan>`).join('')}</text>`;
 }
 export function centerArt(){
  let rays='';for(let i=0;i<24;i++){const a1=i*15*Math.PI/180,a2=(i*15+7.5)*Math.PI/180;rays+=`<path d="M333 330 L${333+700*Math.cos(a1)} ${330+700*Math.sin(a1)} L${333+700*Math.cos(a2)} ${330+700*Math.sin(a2)}Z" fill="#ffc531"/>`}
@@ -178,12 +178,12 @@ export function centerArt(){
   <text x="47" y="110" font-family="'League Spartan',sans-serif" font-weight="800" font-size="20" fill="#ffe27a" letter-spacing="9" class="g-name2">${GAME_NAME[1].toUpperCase()}</text>
   <g transform="rotate(10 586 70)"><circle cx="586" cy="70" r="38" fill="#ffe27a" ${k}/><text x="586" y="64" text-anchor="middle" font-family="'League Spartan',sans-serif" font-weight="900" font-size="15" fill="#141414">BR. 1</text><text x="586" y="84" text-anchor="middle" font-family="'League Spartan',sans-serif" font-weight="700" font-size="12" fill="#141414">2 KM</text></g>
   <!-- oblačići -->
-  ${bubble(150,180,210,74,190,228,['OVO JE HISTORIJSKI','DOGOVOR!'])}
-  ${bubble(515,184,210,74,486,232,['MOŽE. AL’ TEK','POSLIJE IZBORA.'])}
-  ${bubble(333,158,170,62,330,222,['NIJE DOK NIJE','MOJ!'])}
+  ${bubble(140,196,232,92,190,238,['ZAŠTO ŠVEDSKOM','STOLU FALE','ŠVEDSKE STOLICE?'],15)}
+  ${bubble(528,200,236,104,486,240,['ČUJ KOMPA, KUŽIŠ?','KOLIKO TI JE KREVET','DUG, TOLIKO SE','I PRUŽIŠ.'],14)}
+  ${bubble(333,150,196,84,330,222,['SAMO NEK JE','ZDRAVLJA, BIT ĆE','SVE AKO BOG DA.'],14)}
   <!-- natpisna kutija -->
   <g transform="rotate(-2 333 600)"><rect x="186" y="572" width="294" height="58" fill="#fff6c9" ${k}/>
-   <text x="333" y="596" text-anchor="middle" font-family="'Comic Neue','Comic Sans MS',cursive" font-weight="700" font-size="14" fill="#141414"><tspan x="333">Ti se zbog njih posvađao s komšijom.</tspan><tspan x="333" dy="18">Oni zajedno na ručku.</tspan></text></g>
+   <text x="333" y="596" text-anchor="middle" font-family="'Comic Neue','Comic Sans MS',cursive" font-weight="700" font-size="14" fill="#141414"><tspan x="333">Trebaju sredstva</tspan><tspan x="333" dy="18">za nove mercedese.</tspan></text></g>
  </g>
  <rect x="22" y="22" width="622" height="622" fill="none" ${k} stroke-width="4"/>
  </svg>`;

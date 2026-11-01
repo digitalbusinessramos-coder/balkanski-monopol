@@ -34,7 +34,7 @@ export function newRoom(code, rng, now) {
     code, v: 0, phase: 'lobby', createdAt: now, mode: 'fast', round: 1,
     hostId: null, players: [], owners: {}, queue: [], turn: null, trade: null,
     decks: { chance: shuffle([...CHANCE.keys()], rng), surprise: shuffle([...SURPRISE.keys()], rng) },
-    lastRoll: null, lastCard: null, lastDuel: null, winner: null, log: [], seq: 0, seen: [],
+    pot: 0, lastRoll: null, lastCard: null, lastDuel: null, winner: null, log: [], seq: 0, seen: [],
   };
 }
 
@@ -104,11 +104,15 @@ function pay(s, from, toId, amount, reason) {
   if (from.money >= amount) {
     from.money -= amount;
     if (toId) P(s, toId).money += amount;
+    else toPot(s, amount);
     return;
   }
   s.queue.push({ kind: 'debt', pid: from.id, amount, to: toId, reason });
   log(s, `${from.name} duguje ${km(amount)} (${reason}) i nema dovoljno gotovine.`);
 }
+
+// Sve što se plaća banci (porezi, kartice, kazne) ide baki u bubanj. Ko stane Kod babe, pokupi sve.
+function toPot(s, amount) { s.pot = (s.pot || 0) + amount; }
 
 function goToJail(s, p) {
   p.pos = RULES.jailPos; p.inJail = true; p.jailTries = 0;
@@ -118,7 +122,10 @@ function goToJail(s, p) {
 
 function moveBy(s, p, steps, diceSum) {
   const np = (p.pos + steps) % 40;
-  if (p.pos + steps >= 40) { p.money += RULES.passStart; log(s, `${p.name} prošao Start: legla plata ${km(RULES.passStart)}.`); }
+  if (p.pos + steps >= 40) {
+    if (np === 0) { p.money += RULES.passStart * 2; log(s, `${p.name} stao baš na Start: dupla plata ${km(RULES.passStart * 2)}.`); }
+    else { p.money += RULES.passStart; log(s, `${p.name} prošao Start: legla plata ${km(RULES.passStart)}.`); }
+  }
   p.pos = np;
   land(s, p, diceSum);
 }
@@ -144,6 +151,12 @@ function land(s, p, diceSum) {
     case 'chance': drawCard(s, p, 'chance', diceSum); return;
     case 'surprise': drawCard(s, p, 'surprise', diceSum); return;
     case 'gotojail': goToJail(s, p); return;
+    case 'free': {
+      const pot = s.pot || 0;
+      if (pot > 0) { p.money += pot; s.pot = 0; log(s, `${p.name} je Kod babe i kupi bubanj: ${km(pot)}.`); }
+      else log(s, `${p.name} je Kod babe, ali bubanj je prazan.`);
+      return;
+    }
     default: return;
   }
 }
@@ -308,7 +321,7 @@ function validTradeSide(s, pid, side) {
     if (g && groupOf(g).some((i) => level(s, i) > 0)) fail('Prvo prodaj kućice u grupi prije trgovanja.');
   }
   const pardons = Math.floor(Number(side.pardons) || 0);
-  if (pardons < 0 || pardons > P(s, pid).pardons.length) fail('Nemaš toliko pomilovanja.');
+  if (pardons < 0 || pardons > P(s, pid).pardons.length) fail('Nemaš toliko vikendica.');
   if (money > P(s, pid).money) fail('Nema dovoljno gotovine za tu ponudu.');
   return { money, props, pardons };
 }
@@ -373,11 +386,11 @@ export function applyAction(s, pid, a, ctx) {
       if (s.turn.rolled) fail('Ovo se bira prije bacanja.');
       if (type === 'jailPay') {
         if (p.money < RULES.jailFine) fail('Nemaš dovoljno gotovine.');
-        p.money -= RULES.jailFine; log(s, `${p.name} plaća ${km(RULES.jailFine)} i izlazi iz Zenice.`);
+        p.money -= RULES.jailFine; toPot(s, RULES.jailFine); log(s, `${p.name} plaća ${km(RULES.jailFine)} i izlazi iz Zenice.`);
       } else {
         const c = p.pardons.shift();
-        if (!c) fail('Nemaš pomilovanje.');
-        s.decks[c.deck].push(c.idx); log(s, `${p.name} koristi pomilovanje.`);
+        if (!c) fail('Nemaš vikendicu.');
+        s.decks[c.deck].push(c.idx); log(s, `${p.name} se sakrio na vikendicu i izlazi iz Zenice.`);
       }
       p.inJail = false; p.jailTries = 0;
       break;
@@ -416,13 +429,12 @@ export function applyAction(s, pid, a, ctx) {
       const o = P(s, a.target);
       if (!o || o.bankrupt || o.id === p.id) fail('Odaberi suparnika.');
       s.queue.shift();
-      const rolls = [];
-      let x, y;
-      do { x = rng.int(6) + 1; y = rng.int(6) + 1; rolls.push([x, y]); } while (x === y);
-      const [win, lose] = x > y ? [p, o] : [o, p];
-      s.lastDuel = { n: s.seq + 1, a: p.id, b: o.id, rolls, winner: win.id };
-      log(s, `Ćevap-duel: ${p.name} ${x}, ${o.name} ${y}${rolls.length > 1 ? ' (nakon ponavljanja)' : ''}. ${win.name} dobiva ${km(h.amount)}.`);
-      pay(s, lose, win.id, h.amount, 'ćevap-duel');
+      // Hari ili Željo: izvlačitelj navija za Harija i Hari uvijek dobija, osim svakog trećeg kruga.
+      const zeljo = s.round % 3 === 0;
+      const [win, lose] = zeljo ? [o, p] : [p, o];
+      s.lastDuel = { n: s.seq + 1, a: p.id, b: o.id, zeljo, winner: win.id, amount: h.amount };
+      log(s, `Hari ili Željo: ${zeljo ? 'danas dobio Željo' : 'dobio Hari'}. ${win.name} dobiva ${km(h.amount)} od igrača ${lose.name}.`);
+      pay(s, lose, win.id, h.amount, 'Hari ili Željo');
       break;
     }
     case 'payDebt': {
@@ -430,6 +442,7 @@ export function applyAction(s, pid, a, ctx) {
       if (p.money < h.amount) fail(`Treba ti još ${km(h.amount - p.money)}. Prodaj kućice ili stavi posjed pod hipoteku.`);
       p.money -= h.amount;
       if (h.to) P(s, h.to).money += h.amount;
+      else toPot(s, h.amount);
       s.queue.shift();
       log(s, `${p.name} je platio dug od ${km(h.amount)}.`);
       break;
