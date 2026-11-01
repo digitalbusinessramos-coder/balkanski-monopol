@@ -1,6 +1,6 @@
 // Pravila igre. Radi samo na serveru: svako bacanje i svaki potez prolaze kroz applyAction.
 import {
-  FIELDS, RULES, HOUSE_COST, STATIONS, CHANCE, SURPRISE, FIGURES, PLAYER_COLORS, groupOf,
+  FIELDS, RULES, HOUSE_COST, STATIONS, CHANCE, SURPRISE, FIGURES, PLAYER_COLORS, groupOf, CARS, carById, VILLAGES,
 } from '../../../public/shared/data.js';
 
 export class GameError extends Error {
@@ -34,7 +34,7 @@ export function newRoom(code, rng, now) {
     code, v: 0, phase: 'lobby', createdAt: now, mode: 'fast', round: 1,
     hostId: null, players: [], owners: {}, queue: [], turn: null, trade: null,
     decks: { chance: shuffle([...CHANCE.keys()], rng), surprise: shuffle([...SURPRISE.keys()], rng) },
-    lastRoll: null, lastCard: null, lastDuel: null, winner: null, log: [], seq: 0, seen: [],
+    pot: 0, mayor: null, lastRoll: null, lastCard: null, lastDuel: null, winner: null, log: [], seq: 0, seen: [],
   };
 }
 
@@ -46,7 +46,7 @@ export function addPlayer(s, id, name, figure) {
   const taken = new Set(s.players.map((p) => p.figure));
   if (!FIGURES.some((f) => f.id === figure) || taken.has(figure)) figure = FIGURES.find((f) => !taken.has(f.id)).id;
   const color = PLAYER_COLORS.find((c) => !s.players.some((p) => p.color === c));
-  const p = { id, name, figure, color, money: RULES.startMoney, pos: 0, inJail: false, jailTries: 0, skip: 0, pardons: [], bankrupt: false };
+  const p = { id, name, figure, color, money: RULES.startMoney, pos: 0, inJail: false, jailTries: 0, skip: 0, pardons: [], bankrupt: false, car: null };
   s.players.push(p);
   if (!s.hostId) s.hostId = id;
   log(s, `${name} je ušao u sobu.`);
@@ -72,6 +72,7 @@ export function rentFor(s, pos, diceSum) {
   const f = FIELDS[pos], o = s.owners[pos];
   if (!o || o.mortgaged) return 0;
   if (f.kind === 'prop') {
+    if (o.level === 5 && o.bar) return Math.round(f.rent[5] * RULES.barRate);
     if (o.level > 0) return f.rent[o.level];
     return ownsGroup(s, o.owner, f.group) ? f.rent[0] * 2 : f.rent[0];
   }
@@ -95,6 +96,7 @@ export function netWorth(s, pid) {
     w += o.mortgaged ? f.price * RULES.mortgageRate : f.price;
     if (f.group) w += o.level * HOUSE_COST[f.group];
   }
+  if (p.car) w += carById(p.car).price;
   return Math.floor(w);
 }
 
@@ -104,21 +106,68 @@ function pay(s, from, toId, amount, reason) {
   if (from.money >= amount) {
     from.money -= amount;
     if (toId) P(s, toId).money += amount;
+    else toPot(s, amount);
     return;
   }
   s.queue.push({ kind: 'debt', pid: from.id, amount, to: toId, reason });
   log(s, `${from.name} duguje ${km(amount)} (${reason}) i nema dovoljno gotovine.`);
 }
 
+// Sve što se plaća banci (porezi, kartice, kazne) ide baki u bubanj. Ko stane Kod babe, pokupi sve.
+function toPot(s, amount) { s.pot = (s.pot || 0) + amount; }
+
+// Auta mijenjaju kiriju: Golf i Passat na stanicama, Traktor po selima, Mercedes vlasniku donosi više.
+const VILLAGE_POS = VILLAGES.map((n) => FIELDS.findIndex((f) => f.name === n));
+function carRent(s, p, pos, rent) {
+  const f = FIELDS[pos], o = s.owners[pos];
+  let r = rent, why = '';
+  if (f.kind === 'station' && p.car === 'golf') { r = Math.floor(r / 2); why = 'Golf dvojka: pola na stanici'; }
+  if (f.kind === 'station' && p.car === 'passat') { r = 0; why = 'Passat karavan: stanica džaba'; }
+  if (VILLAGE_POS.includes(pos) && p.car === 'traktor') {
+    if (o.level === 0) { r = 0; why = 'Traktor: po selu džaba'; } else { r = Math.floor(r / 2); why = 'Traktor: pola po selu'; }
+  }
+  if (r > 0 && P(s, o.owner).car === 'mercedes') { r += RULES.mercedesBonus; why = why ? `${why}, Mercedes +${RULES.mercedesBonus}` : `vlasnikov Mercedes +${RULES.mercedesBonus}`; }
+  return [r, why];
+}
+
+const mayorOn = (s) => s.players.length >= RULES.mayorMinPlayers;
+const mayorOf = (s) => (s.mayor && !P(s, s.mayor)?.bankrupt ? s.mayor : null);
+
+// Mito: umjesto Zenice, ako nisi načelnik. Načelnik dobija mito, a bez načelnika ide u bubanj.
 function goToJail(s, p) {
+  if (mayorOf(s) === p.id) { jailNow(s, p); return; }
+  if (s.turn?.pid === p.id) { s.turn.canRoll = false; s.turn.pendingMove = 0; }
+  s.queue.push({ kind: 'bribe', pid: p.id, amount: RULES.bribe, to: mayorOf(s) });
+  log(s, `${p.name} treba ići u Zenicu. Može pokušat podmitit${mayorOf(s) ? ` načelnika ${P(s, mayorOf(s)).name}` : ''}.`);
+}
+
+function jailNow(s, p) {
   p.pos = RULES.jailPos; p.inJail = true; p.jailTries = 0;
   if (s.turn?.pid === p.id) { s.turn.canRoll = false; s.turn.pendingMove = 0; }
   log(s, `${p.name} ide u KP dom Zenica.`);
 }
 
+const NOVA_BILA = FIELDS.findIndex((f) => f.name === 'Nova Bila');
+const stealTargets = (s, p) => active(s).filter((q) => q.id !== p.id && q.id !== mayorOf(s));
+
+function passStart(s, p, exact) {
+  const salary = exact ? RULES.passStart * 2 : RULES.passStart;
+  const nb = s.owners[NOVA_BILA];
+  if (nb && nb.owner === p.id && !nb.mortgaged && stealTargets(s, p).length) {
+    s.queue.push({ kind: 'steal', pid: p.id, salary });
+    log(s, `${p.name} je vlasnik Nove Bile: bira platu ili krađu.`);
+  } else {
+    p.money += salary;
+    log(s, exact ? `${p.name} stao baš na Start: dupla plata ${km(salary)}.` : `${p.name} prošao Start: legla plata ${km(salary)}.`);
+  }
+  if (p.car === 'mercedes') { log(s, `${p.name} vozi Mercedes na servis.`); pay(s, p, null, RULES.mercedesService, 'servis Mercedesa'); }
+  const m = mayorOf(s);
+  if (m && m !== p.id) { log(s, `${p.name} plaća članarinu načelniku.`); pay(s, p, m, RULES.mayorFee, 'članarina načelniku'); }
+}
+
 function moveBy(s, p, steps, diceSum) {
   const np = (p.pos + steps) % 40;
-  if (p.pos + steps >= 40) { p.money += RULES.passStart; log(s, `${p.name} prošao Start: legla plata ${km(RULES.passStart)}.`); }
+  if (p.pos + steps >= 40) passStart(s, p, np === 0);
   p.pos = np;
   land(s, p, diceSum);
 }
@@ -128,13 +177,16 @@ function land(s, p, diceSum) {
   switch (f.kind) {
     case 'prop': case 'station': case 'utility': {
       const o = own(s, p.pos);
-      if (!o) { s.queue.push({ kind: 'buy', pid: p.id, pos: p.pos }); return; }
-      if (o.owner === p.id) return;
-      if (o.mortgaged) { log(s, `${f.name} je pod hipotekom, nema kirije.`); return; }
-      const rent = rentFor(s, p.pos, diceSum);
+      const carLot = f.kind === 'station' ? () => s.queue.push({ kind: 'car', pid: p.id }) : () => {};
+      if (!o) { s.queue.push({ kind: 'buy', pid: p.id, pos: p.pos }); carLot(); return; }
+      if (o.owner === p.id) { carLot(); return; }
+      if (o.mortgaged) { log(s, `${f.name} je pod hipotekom, nema kirije.`); carLot(); return; }
+      const [rent, why] = carRent(s, p, p.pos, rentFor(s, p.pos, diceSum));
       const owner = P(s, o.owner);
-      log(s, `${p.name} plaća ${km(rent)} kirije igraču ${owner.name} za ${f.name}.`);
+      log(s, `${p.name} plaća ${km(rent)} kirije igraču ${owner.name} za ${f.name}${why ? ` (${why})` : ''}.`);
       pay(s, p, o.owner, rent, `kirija za ${f.name}`);
+      if (o.level === 5 && o.bar && rent > 0) { p.skip += 1; log(s, `${p.name} se zapio u birtiji na ${f.name} i propušta sljedeći potez.`); }
+      if (f.kind === 'station') s.queue.push({ kind: 'car', pid: p.id });
       return;
     }
     case 'tax':
@@ -144,6 +196,19 @@ function land(s, p, diceSum) {
     case 'chance': drawCard(s, p, 'chance', diceSum); return;
     case 'surprise': drawCard(s, p, 'surprise', diceSum); return;
     case 'gotojail': goToJail(s, p); return;
+    case 'bet': {
+      // Kladionica: ko stane zamisli broj od 1 do 5, ostali pogađaju. Kompjuter ništa ne baca.
+      if (active(s).length < 2) return;
+      s.queue.push({ kind: 'betSet', pid: p.id });
+      log(s, `${p.name} je u kladionici.`);
+      return;
+    }
+    case 'free': {
+      const pot = s.pot || 0;
+      if (pot > 0) { p.money += pot; s.pot = 0; log(s, `${p.name} je Kod babe i kupi bubanj: ${km(pot)}.`); }
+      else log(s, `${p.name} je Kod babe, ali bubanj je prazan.`);
+      return;
+    }
     default: return;
   }
 }
@@ -187,6 +252,15 @@ function drawCard(s, p, deck, diceSum) {
     }
     case 'free': break;
     case 'jail': goToJail(s, p); break;
+    case 'car':
+      if (p.car) { p.money += c.value; log(s, `${p.name} već ima auto, pa prima ${km(c.value)}.`); }
+      else { p.car = 'golf'; log(s, `${p.name} dobija Golfa dvojku.`); }
+      break;
+    case 'mayor': {
+      const m = mayorOf(s);
+      pay(s, p, m && m !== p.id ? m : null, c.value, c.title);
+      break;
+    }
     case 'everyone':
       for (const q of active(s)) if (q.id !== p.id) pay(s, p, q.id, c.value, c.title);
       break;
@@ -212,6 +286,7 @@ function nextTurn(s) {
     if (i <= prev) {
       s.round += 1;
       if (s.mode === 'fast' && s.round > RULES.fastRounds) return endGame(s, `Odigrano je ${RULES.fastRounds} krugova.`);
+      elections(s);
     }
     const p = order[i];
     if (p.bankrupt) continue;
@@ -220,6 +295,35 @@ function nextTurn(s) {
     log(s, `Na potezu je ${p.name}.`);
     return;
   }
+}
+
+function elections(s) {
+  if (!mayorOn(s)) return;
+  const every = s.mode === 'fast' ? RULES.mayorEveryFast : RULES.mayorEveryClassic;
+  if (s.round <= 1 || (s.round - 1) % every !== 0) return;
+  const ranked = active(s).map((q) => ({ id: q.id, w: netWorth(s, q.id) })).sort((a, b) => b.w - a.w);
+  if (!ranked.length) return;
+  const prev = s.mayor;
+  s.mayor = ranked[0].id;
+  log(s, `Izbori! Novi načelnik je ${P(s, s.mayor).name}${prev === s.mayor ? ' (opet)' : ''}.`);
+}
+
+function resolveBet(s) {
+  const b = s.bet;
+  if (!b || s.queue.some((q) => q.kind === 'betGuess')) return;
+  const num = s.hidden?.betNum;
+  const host = P(s, b.pid);
+  const results = [];
+  for (const [gid, g] of Object.entries(b.guesses)) {
+    const q = P(s, gid);
+    if (!q || q.bankrupt || g == null) continue;
+    if (g === num) { results.push({ id: gid, g, win: true }); pay(s, host, gid, RULES.betWin, 'kladionica'); }
+    else { results.push({ id: gid, g, win: false }); pay(s, q, host.id, RULES.betStake, 'kladionica'); }
+  }
+  s.lastBet = { n: s.seq + 1, pid: b.pid, num, results };
+  log(s, `Kladionica: ${host.name} zamislio ${num}. ${results.map((r) => `${P(s, r.id).name} rekao ${r.g}${r.win ? ' i pogodio' : ''}`).join(', ') || 'Niko nije igrao'}.`);
+  s.bet = null;
+  if (s.hidden) delete s.hidden.betNum;
 }
 
 function endGame(s, why) {
@@ -262,8 +366,10 @@ function bankrupt(s, p, toId) {
     for (const c of p.pardons) s.decks[c.deck].push(c.idx);
     log(s, `${p.name} je bankrotirao. Imovina se vraća banci.`);
   }
-  p.pardons = []; p.money = 0; p.bankrupt = true; p.inJail = false;
+  p.pardons = []; p.money = 0; p.bankrupt = true; p.inJail = false; p.car = null;
+  if (s.mayor === p.id) s.mayor = null;
   s.queue = s.queue.filter((q) => q.pid !== p.id);
+  if (s.bet) { if (s.bet.pid === p.id) { s.bet = null; s.queue = s.queue.filter((q) => q.kind !== 'betGuess'); } else { delete s.bet.guesses[p.id]; resolveBet(s); } }
   for (const q of s.queue) if (q.kind === 'debt' && q.to === p.id) q.to = null;
   if (s.trade && (s.trade.from === p.id || s.trade.to === p.id)) s.trade = null;
   if (s.phase === 'play' && s.turn?.pid === p.id && active(s).length > 1) nextTurn(s);
@@ -308,13 +414,14 @@ function validTradeSide(s, pid, side) {
     if (g && groupOf(g).some((i) => level(s, i) > 0)) fail('Prvo prodaj kućice u grupi prije trgovanja.');
   }
   const pardons = Math.floor(Number(side.pardons) || 0);
-  if (pardons < 0 || pardons > P(s, pid).pardons.length) fail('Nemaš toliko pomilovanja.');
+  if (pardons < 0 || pardons > P(s, pid).pardons.length) fail('Nemaš toliko vikendica.');
   if (money > P(s, pid).money) fail('Nema dovoljno gotovine za tu ponudu.');
   return { money, props, pardons };
 }
 
 export function applyAction(s, pid, a, ctx) {
   const { rng, presence = {}, now = Date.now() } = ctx;
+  Object.defineProperty(s, 'rng', { value: rng, configurable: true, enumerable: false, writable: true });
   const p = P(s, pid);
   if (!p) fail('Nisi u ovoj sobi.', 403);
   const type = a?.type;
@@ -373,11 +480,11 @@ export function applyAction(s, pid, a, ctx) {
       if (s.turn.rolled) fail('Ovo se bira prije bacanja.');
       if (type === 'jailPay') {
         if (p.money < RULES.jailFine) fail('Nemaš dovoljno gotovine.');
-        p.money -= RULES.jailFine; log(s, `${p.name} plaća ${km(RULES.jailFine)} i izlazi iz Zenice.`);
+        p.money -= RULES.jailFine; toPot(s, RULES.jailFine); log(s, `${p.name} plaća ${km(RULES.jailFine)} i izlazi iz Zenice.`);
       } else {
         const c = p.pardons.shift();
-        if (!c) fail('Nemaš pomilovanje.');
-        s.decks[c.deck].push(c.idx); log(s, `${p.name} koristi pomilovanje.`);
+        if (!c) fail('Nemaš vikendicu.');
+        s.decks[c.deck].push(c.idx); log(s, `${p.name} se sakrio na vikendicu i izlazi iz Zenice.`);
       }
       p.inJail = false; p.jailTries = 0;
       break;
@@ -416,13 +523,95 @@ export function applyAction(s, pid, a, ctx) {
       const o = P(s, a.target);
       if (!o || o.bankrupt || o.id === p.id) fail('Odaberi suparnika.');
       s.queue.shift();
-      const rolls = [];
-      let x, y;
-      do { x = rng.int(6) + 1; y = rng.int(6) + 1; rolls.push([x, y]); } while (x === y);
-      const [win, lose] = x > y ? [p, o] : [o, p];
-      s.lastDuel = { n: s.seq + 1, a: p.id, b: o.id, rolls, winner: win.id };
-      log(s, `Ćevap-duel: ${p.name} ${x}, ${o.name} ${y}${rolls.length > 1 ? ' (nakon ponavljanja)' : ''}. ${win.name} dobiva ${km(h.amount)}.`);
-      pay(s, lose, win.id, h.amount, 'ćevap-duel');
+      // Hari ili Željo: izvlačitelj navija za Harija i Hari uvijek dobija, osim svakog trećeg kruga.
+      const zeljo = s.round % 3 === 0;
+      const [win, lose] = zeljo ? [o, p] : [p, o];
+      s.lastDuel = { n: s.seq + 1, a: p.id, b: o.id, zeljo, winner: win.id, amount: h.amount };
+      log(s, `Hari ili Željo: ${zeljo ? 'danas dobio Željo' : 'dobio Hari'}. ${win.name} dobiva ${km(h.amount)} od igrača ${lose.name}.`);
+      pay(s, lose, win.id, h.amount, 'Hari ili Željo');
+      break;
+    }
+    case 'car': {
+      const h = needHead(s, p, 'car');
+      if (a.car) {
+        const c = carById(a.car);
+        if (!c) fail('Nepoznat auto.');
+        if (p.car === c.id) fail('Taj auto već imaš.');
+        const back = p.car ? Math.floor(carById(p.car).price / 2) : 0;
+        if (p.money + back < c.price) fail('Nemaš dovoljno gotovine.');
+        if (p.car) log(s, `${p.name} prodaje ${carById(p.car).name} za ${km(back)}.`);
+        p.money += back - c.price; p.car = c.id;
+        log(s, `${p.name} kupuje ${c.name} za ${km(c.price)}.`);
+      }
+      s.queue.shift();
+      break;
+    }
+    case 'steal': {
+      const h = needHead(s, p, 'steal');
+      s.queue.shift();
+      if (!a.target) { p.money += h.salary; log(s, `${p.name} uzima platu ${km(h.salary)}.`); break; }
+      const o = P(s, a.target);
+      if (!o || !stealTargets(s, p).some((q) => q.id === o.id)) fail('Od tog igrača ne možeš krast.');
+      const d = rng.int(6) + 1;
+      if (d === 6) {
+        s.lastSteal = { n: s.seq + 1, a: p.id, b: o.id, caught: true };
+        log(s, `${p.name} krenuo krast od igrača ${o.name}, ali ga uhvatila policija (kocka 6). Ide u Zenicu.`);
+        s.queue = s.queue.filter((q) => q.pid !== p.id || q.kind === 'debt');
+        jailNow(s, p);
+        break;
+      }
+      let what;
+      if (o.car) {
+        const c = carById(o.car);
+        if (p.car) p.money += Math.floor(carById(p.car).price / 2);
+        p.car = o.car; o.car = null; what = c.name;
+      } else {
+        const amt = Math.min(o.money, RULES.stealCash);
+        o.money -= amt; p.money += amt; what = km(amt);
+      }
+      s.lastSteal = { n: s.seq + 1, a: p.id, b: o.id, caught: false, what };
+      log(s, `${p.name} ukrao ${what} od igrača ${o.name} (kocka ${d}).`);
+      break;
+    }
+    case 'bribe': {
+      const h = needHead(s, p, 'bribe');
+      s.queue.shift();
+      if (a.opt !== 'pay') { jailNow(s, p); break; }
+      if (p.money < h.amount) { s.queue.unshift(h); fail('Nemaš dovoljno gotovine za mito.'); }
+      p.money -= h.amount;
+      const d = rng.int(6) + 1;
+      if (d === 1) {
+        toPot(s, h.amount);
+        log(s, `${p.name} nudio mito, ali je otkriven (kocka 1). Pare idu u bubanj, a on u Zenicu.`);
+        jailNow(s, p);
+      } else {
+        const to = mayorOf(s);
+        if (to && to !== p.id) P(s, to).money += h.amount; else toPot(s, h.amount);
+        log(s, `${p.name} podmitio ${to ? `načelnika ${P(s, to).name}` : 'koga treba'} s ${km(h.amount)} i ostaje na slobodi.`);
+      }
+      s.lastBribe = { n: s.seq + 1, pid: p.id, die: d, caught: d === 1 };
+      break;
+    }
+    case 'betSet': {
+      needHead(s, p, 'betSet');
+      s.queue.shift();
+      const num = Number(a.num);
+      if (!a.num) { log(s, `${p.name} se ne kladi.`); break; }
+      if (!Number.isInteger(num) || num < 1 || num > 5) { s.queue.unshift({ kind: 'betSet', pid: p.id }); fail('Biraj broj od 1 do 5.'); }
+      s.hidden = { ...(s.hidden || {}), betNum: num };
+      s.bet = { pid: p.id, guesses: {} };
+      const others = active(s).filter((q) => q.id !== p.id);
+      for (const q of others) s.queue.push({ kind: 'betGuess', pid: q.id, by: p.id });
+      log(s, `${p.name} zamislio broj. Ostali pogađaju: pogodak nosi ${km(RULES.betWin)}, promašaj košta ${km(RULES.betStake)}.`);
+      break;
+    }
+    case 'betGuess': {
+      needHead(s, p, 'betGuess');
+      const g = Number(a.num);
+      if (!Number.isInteger(g) || g < 1 || g > 5) fail('Biraj broj od 1 do 5.');
+      s.queue.shift();
+      s.bet.guesses[p.id] = g;
+      resolveBet(s);
       break;
     }
     case 'payDebt': {
@@ -430,6 +619,7 @@ export function applyAction(s, pid, a, ctx) {
       if (p.money < h.amount) fail(`Treba ti još ${km(h.amount - p.money)}. Prodaj kućice ili stavi posjed pod hipoteku.`);
       p.money -= h.amount;
       if (h.to) P(s, h.to).money += h.amount;
+      else toPot(s, h.amount);
       s.queue.shift();
       log(s, `${p.name} je platio dug od ${km(h.amount)}.`);
       break;
@@ -454,12 +644,13 @@ export function applyAction(s, pid, a, ctx) {
       const g = groupOf(f.group);
       if (!ownsGroup(s, p.id, f.group)) fail('Za gradnju trebaš cijelu grupu.');
       if (g.some((i) => s.owners[i].mortgaged)) fail('Neki posjed u grupi je pod hipotekom.');
-      if (o.level >= 5) fail('Tu je već hotel.');
+      if (o.level >= 5) fail('Tu je već hotel ili birtija.');
       if (o.level > Math.min(...g.map((i) => level(s, i)))) fail('Gradi ravnomjerno: prvo na drugim poljima grupe.');
       const cost = HOUSE_COST[f.group];
       if (p.money < cost) fail('Nemaš dovoljno gotovine.');
       p.money -= cost; o.level += 1;
-      log(s, `${p.name} gradi ${o.level === 5 ? 'hotel' : 'kućicu'} na ${f.name} (${km(cost)}).`);
+      if (o.level === 5) o.bar = !!a.bar;
+      log(s, `${p.name} gradi ${o.level === 5 ? (o.bar ? 'birtiju' : 'hotel') : 'kućicu'} na ${f.name} (${km(cost)}).`);
       break;
     }
     case 'sell': {
@@ -468,7 +659,7 @@ export function applyAction(s, pid, a, ctx) {
       if (!o.level) fail('Nema kućica za prodaju.');
       if (o.level < Math.max(...groupOf(f.group).map((i) => level(s, i)))) fail('Prodaji ravnomjerno: prvo s drugih polja grupe.');
       const back = Math.floor(HOUSE_COST[f.group] / 2);
-      o.level -= 1; p.money += back;
+      o.level -= 1; p.money += back; o.bar = false;
       log(s, `${p.name} prodaje nadogradnju na ${f.name} za ${km(back)}.`);
       break;
     }
@@ -550,6 +741,9 @@ export function applyAction(s, pid, a, ctx) {
       while (s.queue[0] && s.queue[0].pid === tgt.id) {
         const q = s.queue.shift();
         if (q.kind === 'choice') pay(s, tgt, null, q.amount, q.title);
+        if (q.kind === 'steal') tgt.money += q.salary;
+        if (q.kind === 'bribe') jailNow(s, tgt);
+        if (q.kind === 'betGuess' && s.bet) { s.bet.guesses[tgt.id] = null; resolveBet(s); }
         if (q.kind === 'debt') { s.queue.unshift(q); break; }
       }
       log(s, `${tgt.name} je odsutan, potez je preskočen.`);
@@ -563,6 +757,6 @@ export function applyAction(s, pid, a, ctx) {
 
 // Stanje koje se šalje pregledniku: bez tajnih tokena.
 export function publicState(s) {
-  const { secrets, seen, ...rest } = s;
+  const { secrets, seen, hidden, ...rest } = s;
   return rest;
 }

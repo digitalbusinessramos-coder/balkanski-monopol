@@ -54,9 +54,19 @@ export { IC };
 
 // Male ilustracije uz pojedine kartice (skromno, tekst ostaje glavni).
 const CARD_ILL = {
-  'Travnička diploma': 'cevapi', 'Hari ili Željo?': 'cevapi', 'Treći ključ': 'kljuc', 'Javio se Crni': 'telefon',
-  'Snimljen razgovor': 'telefon', 'Peče se rakija': 'rakija', 'Pravi se pekmez': 'tegla', 'Čovićev izborni zakon': 'kocka',
-  'Bosna ulazi u EU': 'vlak', 'Pomilovanje': 'kljucevi',
+  'Diploma': 'cevapi', 'Hari ili Željo?': 'cevapi', 'Ključevi': 'kljuc', 'Javio se Crni': 'telefon',
+  'Među nama': 'telefon', 'Peče se rakija': 'rakija', 'Degustacija': 'tegla', 'Svinjokolja': 'rakija',
+  'Bosna ulazi u EU': 'vlak', 'Vikendica': 'kljucevi',
+};
+
+// Ikone auta (u boji, da se razlikuju na ploči i kod igrača).
+const carSVG = (body, col) => `<svg viewBox="0 0 32 32">${body.replaceAll('$C', col)}</svg>`;
+const W = (x) => `<circle cx="${x}" cy="23" r="3.6" fill="#222" stroke="#fff" stroke-width="1"/>`;
+export const CAR_IC = {
+  golf: carSVG(`<path d="M3 22v-5l3-1 4-6h11l5 6 3 1v5z" fill="$C" stroke="#141414" stroke-width="1.4" stroke-linejoin="round"/><path d="M11 11h9l3 5H9z" fill="#cfe8ff" stroke="#141414"/>${W(9)}${W(23)}`, '#d2242a'),
+  passat: carSVG(`<path d="M2 22v-5l3-1 3-6h17l3 6v6z" fill="$C" stroke="#141414" stroke-width="1.4" stroke-linejoin="round"/><path d="M9 11h15l2 5H7z" fill="#cfe8ff" stroke="#141414"/>${W(8)}${W(24)}`, '#1f4fa3'),
+  mercedes: carSVG(`<path d="M2 22v-4l5-2 4-5h10l5 5 4 1v5z" fill="$C" stroke="#141414" stroke-width="1.4" stroke-linejoin="round"/><path d="M12 12h8l3 4H10z" fill="#cfe8ff" stroke="#141414"/><circle cx="29" cy="19" r="1.6" fill="#ddd" stroke="#141414" stroke-width=".6"/>${W(8)}${W(24)}`, '#2b2b2b'),
+  traktor: carSVG(`<path d="M4 21v-6h9l2-6h7v6h5v6z" fill="$C" stroke="#141414" stroke-width="1.4" stroke-linejoin="round"/><path d="M16 10h5v5h-5z" fill="#cfe8ff" stroke="#141414"/><path d="M24 9v6" stroke="#141414" stroke-width="1.6"/><circle cx="10" cy="22" r="6" fill="#222" stroke="#fff"/><circle cx="25" cy="24" r="4" fill="#222" stroke="#fff"/>`, '#1f9a4b'),
 };
 
 export function pos(i){ // red, stupac, rotacija
@@ -66,16 +76,16 @@ export function pos(i){ // red, stupac, rotacija
 }
 
 export const TOK = {
- dzezva:`<svg viewBox="0 0 32 32"><path d="M10 11h12l2 15a3 3 0 0 1-3 3H11a3 3 0 0 1-3-3z" fill="#b9bcc0" stroke="#3a3d42" stroke-width="1.3"/><path d="M10 11 6 7" stroke="#3a3d42" stroke-width="2.4" stroke-linecap="round"/><path d="M22 14h7" stroke="#3a3d42" stroke-width="2.6" stroke-linecap="round"/><path d="M12 15h3v12h-3z" fill="#e8eaec" opacity=".7"/></svg>`,
- golf:`<svg viewBox="0 0 32 32"><path d="M3 21v-4l3-1 3-6h12l5 6 3 1v4z" fill="#b9bcc0" stroke="#3a3d42" stroke-width="1.3" stroke-linejoin="round"/><path d="M11 11h4v5h-6zM17 11h3l3 5h-6z" fill="#e8eaec" stroke="#3a3d42"/><circle cx="9" cy="22" r="3.2" fill="#55595f" stroke="#2a2c30"/><circle cx="23" cy="22" r="3.2" fill="#55595f" stroke="#2a2c30"/></svg>`,
- fildzan:`<svg viewBox="0 0 32 32"><path d="M7 11h18l-3 14H10z" fill="#b9bcc0" stroke="#3a3d42" stroke-width="1.3"/><ellipse cx="16" cy="27" rx="11" ry="2.6" fill="#a7aaae" stroke="#3a3d42"/><path d="M9 15h14" stroke="#7d8187"/><path d="M11 12h3v11h-2z" fill="#eef0f2" opacity=".7"/></svg>`,
- subara:`<svg viewBox="0 0 32 32"><path d="M6 20c0-8 4-13 10-13s10 5 10 13z" fill="#b9bcc0" stroke="#3a3d42" stroke-width="1.3"/><path d="M4 20h24v5H4z" fill="#8d9096" stroke="#3a3d42" stroke-width="1.3"/><path d="M9 12q7-4 14 0M8 16q8-4 16 0" stroke="#7d8187" fill="none"/></svg>`,
- kanister:`<svg viewBox="0 0 32 32"><path d="M7 9h14l4 4v15H7z" fill="#b9bcc0" stroke="#3a3d42" stroke-width="1.3" stroke-linejoin="round"/><path d="M10 9V5h6v4" fill="none" stroke="#3a3d42" stroke-width="2"/><path d="M21 9l3-4h3v4" fill="#9ea2a7" stroke="#3a3d42" stroke-width="1.3"/><path d="M10 14l11 11M21 14 10 25" stroke="#7d8187" stroke-width="1.5"/></svg>`,
- kljuc:`<svg viewBox="0 0 32 32"><circle cx="10" cy="16" r="6.5" fill="#b9bcc0" stroke="#3a3d42" stroke-width="1.3"/><circle cx="10" cy="16" r="2.2" fill="#e8eaec" stroke="#3a3d42"/><path d="M16 14.5h13v3h-2v3h-3v-3h-2v2h-3v-2h-3z" fill="#b9bcc0" stroke="#3a3d42" stroke-width="1.2" stroke-linejoin="round"/></svg>`
+ dzezva:`<svg viewBox="0 0 32 32"><path d="M10 12h11l2 14a3 3 0 0 1-3 3h-9a3 3 0 0 1-3-3z" fill="#c8742f" stroke="#141414" stroke-width="1.3" stroke-linejoin="round"/><path d="M10 12l-3-3h16l-2 3" fill="#e0934a" stroke="#141414" stroke-width="1.3" stroke-linejoin="round"/><path d="M21.5 15 L30 9" stroke="#3a2a1e" stroke-width="2.6" stroke-linecap="round"/><path d="M12 16v9" stroke="#f3b779" stroke-width="1.6" stroke-linecap="round"/><path d="M14 5c-1 1.5 1 2 0 3.5M18 4.5c-1 1.5 1 2 0 3.5" fill="none" stroke="#9aa" stroke-width="1.1" stroke-linecap="round"/></svg>`,
+ nokia:`<svg viewBox="0 0 32 32"><rect x="9" y="2.5" width="14" height="27" rx="5" fill="#2f4a6b" stroke="#141414" stroke-width="1.3" stroke-linejoin="round"/><rect x="11.5" y="6.5" width="9" height="7.5" rx="1" fill="#b5e08a" stroke="#141414" stroke-width="1.3" stroke-linejoin="round"/><path d="M12.5 9h4M12.5 11h6" stroke="#4a6b2a" stroke-width=".9"/><rect x="13" y="16" width="6" height="2" rx="1" fill="#cfd6df"/><g fill="#cfd6df"><circle cx="12.8" cy="21" r="1.1"/><circle cx="16" cy="21" r="1.1"/><circle cx="19.2" cy="21" r="1.1"/><circle cx="12.8" cy="24.3" r="1.1"/><circle cx="16" cy="24.3" r="1.1"/><circle cx="19.2" cy="24.3" r="1.1"/></g></svg>`,
+ fildzan:`<svg viewBox="0 0 32 32"><ellipse cx="16" cy="26" rx="13" ry="3.2" fill="#d4a93b" stroke="#141414" stroke-width="1.3" stroke-linejoin="round"/><path d="M8 11h16l-2.5 13h-11z" fill="#fff" stroke="#141414" stroke-width="1.3" stroke-linejoin="round"/><path d="M8.6 14h14.8M9.6 19.5h12.8" stroke="#1f4fa3" stroke-width="1.6"/><path d="M12 16.8l1.2 1 1.2-1 1.2 1 1.2-1 1.2 1 1.2-1 1.2 1" fill="none" stroke="#d2242a" stroke-width="1"/><ellipse cx="16" cy="11" rx="8" ry="1.6" fill="#5a3a22" stroke="#141414" stroke-width="1.3" stroke-linejoin="round"/></svg>`,
+ harmonika:`<svg viewBox="0 0 32 32"><rect x="2" y="8" width="8" height="17" rx="1.5" fill="#c4161c" stroke="#141414" stroke-width="1.3" stroke-linejoin="round"/><g stroke="#141414" stroke-width=".7"><rect x="3.5" y="9.5" width="5" height="14" fill="#fff"/><path d="M3.5 12.3h5M3.5 15.1h5M3.5 17.9h5M3.5 20.7h5"/></g><g fill="#141414"><rect x="6" y="11.2" width="2.5" height="1.6"/><rect x="6" y="14" width="2.5" height="1.6"/><rect x="6" y="19.6" width="2.5" height="1.6"/></g><path d="M10 9h12v15H10z" fill="#2b2b2b" stroke="#141414" stroke-width="1.3" stroke-linejoin="round"/><path d="M12 9v15M14 9v15M16 9v15M18 9v15M20 9v15" stroke="#e8c15a" stroke-width="1.1"/><rect x="22" y="8" width="8" height="17" rx="1.5" fill="#c4161c" stroke="#141414" stroke-width="1.3" stroke-linejoin="round"/><g fill="#fff" stroke="#141414" stroke-width=".5"><circle cx="24.6" cy="11.5" r="1"/><circle cx="27.4" cy="11.5" r="1"/><circle cx="24.6" cy="14.5" r="1"/><circle cx="27.4" cy="14.5" r="1"/><circle cx="24.6" cy="17.5" r="1"/><circle cx="27.4" cy="17.5" r="1"/><circle cx="24.6" cy="20.5" r="1"/><circle cx="27.4" cy="20.5" r="1"/></g><path d="M10 6.5h12" stroke="#7a4a22" stroke-width="2" stroke-linecap="round"/></svg>`,
+ krigla:`<svg viewBox="0 0 32 32"><path d="M21 13h3a3 3 0 0 1 3 3v4a3 3 0 0 1-3 3h-3" fill="none" stroke="#141414" stroke-width="3.2"/><path d="M21 13h3a3 3 0 0 1 3 3v4a3 3 0 0 1-3 3h-3" fill="none" stroke="#dfe9ee" stroke-width="1.6"/><path d="M7 10h14v17a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2z" fill="#f2a90b" stroke="#141414" stroke-width="1.3" stroke-linejoin="round"/><path d="M11 14v11M15 14v11" stroke="#ffd86b" stroke-width="1.6" stroke-linecap="round"/><path d="M6 10.5c0-3 2-4.8 4-4 1-2 4-2.6 6-1 2-1.2 5 0 5 3v2H6z" fill="#fff" stroke="#141414" stroke-width="1.3" stroke-linejoin="round"/></svg>`,
+ rakija:`<svg viewBox="0 0 32 32"><path d="M9.5 5h13l-2.2 22h-8.6z" fill="#e8f4fb" stroke="#141414" stroke-width="1.3" stroke-linejoin="round"/><path d="M10.6 12.5h10.8l-1.5 14.1h-7.8z" fill="#f2d24f"/><path d="M9.5 5h13l-2.2 22h-8.6z" fill="none" stroke="#141414" stroke-width="1.3" stroke-linejoin="round"/><path d="M12.3 8v15" stroke="#fff" stroke-width="1.4" stroke-linecap="round"/><path d="M10.6 12.5h10.8" stroke="#c9a52a" stroke-width="1"/></svg>`
 };
 
 export function cellHTML(f, i) {
- const n = f.name, k = { prop: 'p', station: 'st', utility: 'u', tax: 'tax', chance: 's', surprise: 'i', start: 'start', jail: 'jail', free: 'free', gotojail: 'go' }[f.kind];
+ const n = f.name, k = { prop: 'p', station: 'st', utility: 'u', tax: 'tax', bet: 'bet', chance: 's', surprise: 'i', start: 'start', jail: 'jail', free: 'free', gotojail: 'go' }[f.kind];
  const a = f.kind === 'prop' ? f.group : f.kind === 'utility' ? f.icon : f.kind === 'tax' ? (f.amount === 100 ? 'ring' : 'tax') : 0;
  const b = f.price ?? `Plati ${km(f.amount || 0)}`;
  let h = '';
@@ -83,11 +93,12 @@ export function cellHTML(f, i) {
  else if(k==='st') h=`<div class="nm">${n.replace('Stanica ','Stanica<br>')}</div><div class="ico">${IC.train}</div><div class="pr">${km(b)}</div>`;
  else if(k==='u') h=`<div class="nm">${n}</div><div class="ico sm">${IC[a]}</div><div class="pr">${km(b)}</div>`;
  else if(k==='tax') h=`<div class="nm">${n}</div><div class="ico sm">${IC[a]}</div><div class="pr">${b}</div>`;
+ else if(k==='bet') h=`<div class="nm">${n}</div><div class="ico sm">${IC.ili.kocka}</div><div class="pr">Pogodi broj</div>`;
  else if(k==='s') h=`<div class="nm">Šansa</div><div style="font:900 56px/1 var(--f-board);color:var(--red);-webkit-text-stroke:1.5px #141414;margin-top:8px">?</div>`;
  else if(k==='i') h=`<div class="nm">Iznenađenje</div><div class="ico">${IC.box}</div>`;
- else if(k==='start') h=`<div class="small">Prolaziš i primaš 200 KM</div><div class="big" style="font-size:22px">Legla<br>plata</div><svg viewBox="0 0 90 30" width="84" height="28"><path d="M86 15H16M28 3 12 15l16 12" fill="none" stroke="#d2242a" stroke-width="7" stroke-linejoin="round"/></svg>`;
+ else if(k==='start') h=`<div class="small">Prolaziš i primaš ${km(RULES.passStart)}</div><div class="big" style="font-size:22px">Legla<br>plata</div><svg viewBox="0 0 90 30" width="84" height="28"><path d="M86 15H16M28 3 12 15l16 12" fill="none" stroke="#d2242a" stroke-width="7" stroke-linejoin="round"/></svg>`;
  else if(k==='jail') h=`<div style="display:grid;grid-template-columns:30px 1fr;width:117px;height:117px"><div style="grid-row:1/3;display:flex;align-items:center;justify-content:center;border-right:1px solid #141414"><span style="transform:rotate(90deg);font:700 10px var(--f-board);white-space:nowrap;letter-spacing:.1em">SAMO U POSJETI</span></div><div style="background:#f08a24;border-bottom:1px solid #141414;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;height:87px;box-sizing:border-box"><span class="big" style="font-size:13px">KP dom<br>Zenica</span><svg viewBox="0 0 40 30" width="40" height="28"><rect x="2" y="2" width="36" height="26" fill="#fff" stroke="#141414" stroke-width="2"/><path d="M10 2v26M18 2v26M26 2v26M33 2v26" stroke="#141414" stroke-width="2.4"/></svg></div><div class="small" style="font-size:8.5px;display:flex;align-items:center;justify-content:center;font-style:italic;padding:0 2px">„U Zenicu kada pođem ja…”</div></div>`;
- else if(k==='free') h=`<div class="big">Kod</div><div class="ico" style="width:40px;height:40px;margin:0">${IC.dzezva}</div><div class="big">babe</div><div class="small">Predah, kahva i ništa se ne plaća</div>`;
+ else if(k==='free') h=`<div class="big">Kod</div><div class="ico" style="width:40px;height:40px;margin:0">${IC.dzezva}</div><div class="big">babe</div><div class="small">Ko stane, kupi bubanj</div>`;
  else if(k==='go') h=`<div class="big">Idi u</div><div class="ico" style="width:40px;height:40px;margin:0">${IC.cuffs}</div><div class="big">Zenicu</div><div class="small">Bez naplate Starta</div>`;
  return h;
 }
@@ -131,12 +142,12 @@ function person(cx,o){
  s+=`<circle cx="${cx-44}" cy="380" r="6" fill="${o.pin}" ${k} stroke-width="2"/>`;
  return s+`</g>`;
 }
-function bubble(cx,cy,w,h,tx,ty,lines){
+function bubble(cx,cy,w,h,tx,ty,lines,fs=16){
  const k='stroke="#141414" stroke-width="3" stroke-linejoin="round"';
  return `<path d="M${cx-18} ${cy+h/2-6} L${tx} ${ty} L${cx+10} ${cy+h/2-4}" fill="#fff" ${k}/>
  <ellipse cx="${cx}" cy="${cy}" rx="${w/2}" ry="${h/2}" fill="#fff" ${k}/>
  <path d="M${cx-14} ${cy+h/2-8} L${tx} ${ty} L${cx+8} ${cy+h/2-6}" fill="#fff"/>
- <text x="${cx}" y="${cy-(lines.length-1)*9+5}" text-anchor="middle" font-family="'Comic Neue','Comic Sans MS',cursive" font-weight="700" font-size="16" fill="#141414">${lines.map((l,i)=>`<tspan x="${cx}" dy="${i?18:0}">${l}</tspan>`).join('')}</text>`;
+ <text x="${cx}" y="${cy-(lines.length-1)*(fs+2)/2+fs*0.3}" text-anchor="middle" font-family="'Comic Neue','Comic Sans MS',cursive" font-weight="700" font-size="${fs}" fill="#141414">${lines.map((l,i)=>`<tspan x="${cx}" dy="${i?fs+2:0}">${l}</tspan>`).join('')}</text>`;
 }
 export function centerArt(){
  let rays='';for(let i=0;i<24;i++){const a1=i*15*Math.PI/180,a2=(i*15+7.5)*Math.PI/180;rays+=`<path d="M333 330 L${333+700*Math.cos(a1)} ${330+700*Math.sin(a1)} L${333+700*Math.cos(a2)} ${330+700*Math.sin(a2)}Z" fill="#ffc531"/>`}
@@ -178,12 +189,12 @@ export function centerArt(){
   <text x="47" y="110" font-family="'League Spartan',sans-serif" font-weight="800" font-size="20" fill="#ffe27a" letter-spacing="9" class="g-name2">${GAME_NAME[1].toUpperCase()}</text>
   <g transform="rotate(10 586 70)"><circle cx="586" cy="70" r="38" fill="#ffe27a" ${k}/><text x="586" y="64" text-anchor="middle" font-family="'League Spartan',sans-serif" font-weight="900" font-size="15" fill="#141414">BR. 1</text><text x="586" y="84" text-anchor="middle" font-family="'League Spartan',sans-serif" font-weight="700" font-size="12" fill="#141414">2 KM</text></g>
   <!-- oblačići -->
-  ${bubble(150,180,210,74,190,228,['OVO JE HISTORIJSKI','DOGOVOR!'])}
-  ${bubble(515,184,210,74,486,232,['MOŽE. AL’ TEK','POSLIJE IZBORA.'])}
-  ${bubble(333,158,170,62,330,222,['NIJE DOK NIJE','MOJ!'])}
+  ${bubble(140,196,232,92,190,238,['ZAŠTO ŠVEDSKOM','STOLU FALE','ŠVEDSKE STOLICE?'],15)}
+  ${bubble(528,200,236,104,486,240,['ČUJ KOMPA, KUŽIŠ?','KOLIKO TI JE KREVET','DUG, TOLIKO SE','I PRUŽIŠ.'],14)}
+  ${bubble(333,150,196,84,330,222,['SAMO NEK JE','ZDRAVLJA, BIT ĆE','SVE AKO BOG DA.'],14)}
   <!-- natpisna kutija -->
   <g transform="rotate(-2 333 600)"><rect x="186" y="572" width="294" height="58" fill="#fff6c9" ${k}/>
-   <text x="333" y="596" text-anchor="middle" font-family="'Comic Neue','Comic Sans MS',cursive" font-weight="700" font-size="14" fill="#141414"><tspan x="333">Ti se zbog njih posvađao s komšijom.</tspan><tspan x="333" dy="18">Oni zajedno na ručku.</tspan></text></g>
+   <text x="333" y="596" text-anchor="middle" font-family="'Comic Neue','Comic Sans MS',cursive" font-weight="700" font-size="14" fill="#141414"><tspan x="333">Trebaju sredstva</tspan><tspan x="333" dy="18">za nove mercedese.</tspan></text></g>
  </g>
  <rect x="22" y="22" width="622" height="622" fill="none" ${k} stroke-width="4"/>
  </svg>`;
@@ -215,7 +226,7 @@ export function deedHTML(pos) {
  <div class="deed-ico">${IC.city[f.name] || ''}</div>
  <table><tr class="rent1"><td colspan="2">Kirija ${km(r[0])}</td></tr>
  <tr><td>S 1 kućom</td><td>${km(r[1])}</td></tr><tr><td>S 2 kuće</td><td>${km(r[2])}</td></tr><tr><td>S 3 kuće</td><td>${km(r[3])}</td></tr><tr><td>S 4 kuće</td><td>${km(r[4])}</td></tr>
- <tr><td colspan="2" class="hotel-row">S hotelom ${km(r[5])}</td></tr></table><hr>
+ <tr><td colspan="2" class="hotel-row">S hotelom ${km(r[5])}</td></tr><tr><td colspan="2" class="hotel-row">S birtijom ${km(Math.round(r[5] * RULES.barRate))} + propušta potez</td></tr></table><hr>
  <table><tr><td>Cijena</td><td>${km(f.price)}</td></tr><tr><td>Hipoteka</td><td>${km(f.price * RULES.mortgageRate)}</td></tr><tr><td>Otkup</td><td>${km(Math.ceil(Math.round(f.price * RULES.unmortgageRate * 100) / 100))}</td></tr><tr><td>Kuća košta</td><td>${km(hc)}</td></tr><tr><td>Hotel košta</td><td>${km(hc)} + 4 kuće</td></tr></table>
  <div class="dnote">Ko ima cijelu grupu (${names.join(', ')}) naplaćuje duplu kiriju na praznim posjedima.</div></div></div>`;
   }
@@ -237,11 +248,12 @@ export function deedHTML(pos) {
 function fieldInfo(pos) {
   const f = FIELDS[pos];
   return {
-    start: `Svaki put kad prođeš ili staneš na Start, primaš ${km(RULES.passStart)}.`,
+    start: `Kad prođeš Start, primaš ${km(RULES.passStart)}. Ako staneš baš na Start, duplo: ${km(RULES.passStart * 2)}.`,
+    bet: `Ko stane, zamisli broj od 1 do 5, a ostali pogađaju. Ko pogodi, dobija ${km(RULES.betWin)} od njega. Ko promaši, plaća mu ${km(RULES.betStake)}.`,
     tax: `Plaćaš ${km(f.amount || 0)} banci.`,
     chance: 'Izvlačiš kartu Šanse.', surprise: 'Izvlačiš kartu Iznenađenja.',
-    jail: `„U Zenicu kada pođem ja…” Ako samo prolaziš, u posjeti si. Izlaz: duple kockice, pomilovanje ili ${km(RULES.jailFine)}.`,
-    free: 'Predah kod babe. Kahva, ništa se ne plaća.',
+    jail: `„U Zenicu kada pođem ja…” Ako samo prolaziš, u posjeti si. Izlaz: duple kockice, vikendica ili ${km(RULES.jailFine)}.`,
+    free: 'Kod babe je bubanj: sve što se plati banci za poreze, kartice i kazne. Ko stane ovdje, pokupi sve.',
     gotojail: 'Ideš ravno u KP dom Zenica, bez naplate Starta.',
   }[f.kind] || '';
 }

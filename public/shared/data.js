@@ -4,7 +4,7 @@ export const GAME_NAME = ['Bosanski', 'monopol'];
 
 export const RULES = {
   startMoney: 1800,
-  passStart: 200,
+  passStart: 300, // dupla plata ako staneš baš na Start
   jailFine: 50,
   jailPos: 10,
   maxJailTries: 3,
@@ -16,7 +16,29 @@ export const RULES = {
   utilityMult: [0, 4, 10],
   minPlayers: 2,
   maxPlayers: 6,
+  // Načelnik: izbori svakih 5 krugova u brzoj i 10 u klasičnoj partiji, samo kad igraju barem 3.
+  mayorEveryFast: 5,
+  mayorEveryClassic: 10,
+  mayorMinPlayers: 3,
+  mayorFee: 10,
+  bribe: 100,
+  stealCash: 100,
+  betStake: 50,
+  betWin: 150,
+  mercedesBonus: 10,
+  mercedesService: 30,
+  barRate: 0.8, // birtija naplaćuje 80 % hotelske kirije, ali gost propušta sljedeći potez
 };
+
+// Auta se kupuju na stanicama. Igrač ima najviše jedan auto.
+export const CARS = [
+  { id: 'golf', name: 'Golf dvojka', price: 100, desc: 'Na tuđim stanicama plaćaš pola.' },
+  { id: 'traktor', name: 'Traktor', price: 150, desc: 'Po selima džaba: na seoskim poljima bez kuća ne plaćaš kiriju, a s kućama plaćaš pola.' },
+  { id: 'passat', name: 'Passat karavan', price: 200, desc: 'Na tuđim stanicama ne plaćaš ništa.' },
+  { id: 'mercedes', name: 'Mercedes', price: 350, desc: 'Ko stane na tvoj posjed plaća 10 KM više. Na svakom prolasku Starta servis 30 KM.' },
+];
+export const carById = (id) => CARS.find((c) => c.id === id);
+export const VILLAGES = ['Buzuci', 'Brnjaci', 'Azići', 'Prahulje'];
 
 // Cijena gradnje po kućici za svaku grupu boja.
 export const HOUSE_COST = { 1: 50, 2: 50, 3: 100, 4: 100, 5: 150, 6: 150, 7: 200, 8: 200 };
@@ -27,7 +49,7 @@ export const GROUP_COLOR = {
 };
 
 // kind: start | prop | chance | surprise | tax | station | jail | utility | free | gotojail
-// rent: [prazno, 1 kuća, 2, 3, 4, hotel]
+// rent: [prazno, 1 kuća, 2, 3, 4, birtija]
 export const FIELDS = [
   { name: 'Legla plata', kind: 'start' },
   { name: 'Donji Vakuf', kind: 'prop', group: 1, price: 60, rent: [2, 10, 30, 90, 160, 250] },
@@ -67,7 +89,7 @@ export const FIELDS = [
   { name: 'Stanica Mostar', kind: 'station', price: 200 },
   { name: 'Šansa', kind: 'chance' },
   { name: 'Prahulje', kind: 'prop', group: 8, price: 390, rent: [40, 190, 570, 1250, 1500, 1750] },
-  { name: 'Porez na luksuz', kind: 'tax', amount: 100 },
+  { name: 'Kladionica', kind: 'bet', amount: 50 },
   { name: 'Nova Bila', kind: 'prop', group: 8, price: 400, rent: [50, 200, 600, 1400, 1700, 2000] },
 ];
 
@@ -78,50 +100,106 @@ export const groupOf = (g) => FIELDS.map((f, i) => (f.group === g ? i : -1)).fil
 
 export const FIGURES = [
   { id: 'dzezva', name: 'Džezva' },
-  { id: 'golf', name: 'Golf dvojka' },
+  { id: 'nokia', name: 'Nokia' },
   { id: 'fildzan', name: 'Fildžan' },
-  { id: 'subara', name: 'Šubara' },
-  { id: 'kanister', name: 'Kanister' },
-  { id: 'kljuc', name: 'Treći ključ' },
+  { id: 'harmonika', name: 'Harmonika' },
+  { id: 'krigla', name: 'Krigla' },
+  { id: 'rakija', name: 'Čašica rakije' },
 ];
 export const PLAYER_COLORS = ['#1f4fa3', '#d2242a', '#1f9a4b', '#8e44ad', '#e67e22', '#16a3a3'];
 
-// Odobrene kartice: 20 Šansi i 20 Iznenađenja.
+// Kartice: 18 Šansi i 19 Iznenađenja.
 export const CHANCE = [
  {
-  "title": "Travnička diploma",
-  "text": "Svratio kod Harija na desetku. Dok si pojeo, završio fakultet.",
+  "title": "Diploma",
+  "text": "Svratio na ćevape, završio fakultet.",
   "effect": "cash",
   "value": -150,
   "effectText": "Plati 150 KM banci."
  },
  {
-  "title": "Bakirovih 100.000 radnih mjesta",
-  "text": "Našao i ti svoje. U Njemačkoj.",
-  "effect": "cash",
-  "value": 100,
-  "effectText": "Primi 100 KM iz banke."
- },
- {
-  "title": "Dodikov referendum",
-  "text": "Opet najavio odlazak. Ti već platio muziku za ispraćaj.",
+  "title": "Nisi u stranci",
+  "text": "Obećali 100.000 radnih mjesta. Al ništa za tebe jer nisi u stranci.",
   "effect": "cash",
   "value": -50,
   "effectText": "Plati 50 KM banci."
  },
  {
-  "title": "Čovićev izborni zakon",
-  "text": "Ne priznaješ rezultat kockice dok ne provjeriš ko ju je birao.",
-  "effect": "again",
-  "value": 0,
-  "effectText": "Dobivaš novo bacanje."
+  "title": "Ispraćaj",
+  "text": "Opet najavio da odlazi. Ti opet platio muziku.",
+  "effect": "cash",
+  "value": -50,
+  "effectText": "Plati 50 KM banci."
  },
  {
-  "title": "Bakir, Dodik i Čović",
-  "text": "Ti se zbog njih posvađao s komšijom. Oni zajedno na ručku.",
+  "title": "Novi mercedesi",
+  "text": "Trebaju sredstva za nove mercedese.",
   "effect": "cash",
   "value": -40,
   "effectText": "Plati 40 KM banci."
+ },
+ {
+  "title": "Poslao me Enes",
+  "text": "Rekao da te poslao Enes.",
+  "effect": "cash",
+  "value": 120,
+  "effectText": "Primi 120 KM iz banke."
+ },
+ {
+  "title": "Javni natječaj",
+  "text": "Raspisan javni natječaj. Već se zna ko je dobio: ti.",
+  "effect": "cash",
+  "value": 150,
+  "effectText": "Primi 150 KM iz banke."
+ },
+ {
+  "title": "E-uprava",
+  "text": "Predao online. Sad isprintaj i donesi.",
+  "effect": "back",
+  "value": 2,
+  "effectText": "Vrati se 2 polja."
+ },
+ {
+  "title": "Još jedan papir",
+  "text": "Fali još samo jedan papir.",
+  "effect": "cash",
+  "value": -30,
+  "effectText": "Plati 30 KM banci."
+ },
+ {
+  "title": "Asfalt",
+  "text": "Počeli asfaltirat cestu i u tvom selu. Znači idu izbori.",
+  "effect": "cash",
+  "value": 50,
+  "effectText": "Primi 50 KM iz banke."
+ },
+ {
+  "title": "Ključevi",
+  "text": "Zaboravio ključeve.",
+  "effect": "back",
+  "value": 3,
+  "effectText": "Vrati se 3 polja."
+ },
+ {
+  "title": "Među nama",
+  "text": "Rekao „ovo ostaje među nama”. Nije ostalo.",
+  "effect": "choice",
+  "value": 150,
+  "effectText": "Plati 150 KM ili jedan potez u Zenici."
+ },
+ {
+  "title": "Majstor",
+  "text": "Pukla cijev. Majstor rekao da će doći danas. Nije došao.",
+  "effect": "repairs",
+  "value": 40,
+  "effectText": "Plati 40 KM po nadogradnji."
+ },
+ {
+  "title": "Vikendica",
+  "text": "Mater rekla da si u Njemačkoj. Ti na vikendici.",
+  "effect": "free",
+  "value": 0,
+  "effectText": "Sačuvaj za besplatan izlazak iz Zenice."
  },
  {
   "title": "Bosna ulazi u EU",
@@ -131,62 +209,6 @@ export const CHANCE = [
   "effectText": "Idi na najbližu sljedeću stanicu."
  },
  {
-  "title": "Popis 2013.",
-  "text": "Po papirima puna kuća. Uživo poštar ostavlja račune pod kamen.",
-  "effect": "cash",
-  "value": -40,
-  "effectText": "Plati 40 KM banci."
- },
- {
-  "title": "Stranačka iskaznica",
-  "text": "Diploma ti otvorila fasciklu. Iskaznica vrata.",
-  "effect": "cash",
-  "value": 120,
-  "effectText": "Primi 120 KM iz banke."
- },
- {
-  "title": "Tender po mjeri",
-  "text": "Traže firmu osnovanu jučer, s vlasnikom tvog imena. Kakva slučajnost.",
-  "effect": "cash",
-  "value": 150,
-  "effectText": "Primi 150 KM iz banke."
- },
- {
-  "title": "Digitalizacija",
-  "text": "Online zahtjev uspješno zaprimljen. Sad ga isprintaj i donesi.",
-  "effect": "back",
-  "value": 2,
-  "effectText": "Vrati se 2 polja."
- },
- {
-  "title": "Fali jedan papir",
-  "text": "Imaš original, kopiju i ovjeru. Treba kopija ovjerene kopije.",
-  "effect": "cash",
-  "value": -30,
-  "effectText": "Plati 30 KM banci."
- },
- {
-  "title": "Predizborni paket",
-  "text": "Četiri godine ništa. Danas ulje, brašno i broj za zaokružit.",
-  "effect": "cash",
-  "value": 50,
-  "effectText": "Primi 50 KM iz banke."
- },
- {
-  "title": "Samo nek ne puca",
-  "text": "Pitao zašto nema vode. Odgovor počeo devedeset prve.",
-  "effect": "cash",
-  "value": -30,
-  "effectText": "Plati 30 KM banci."
- },
- {
-  "title": "Komentari na Klixu",
-  "text": "Otvorio vijest o jagodama. Završio u raspravi čija je država.",
-  "effect": "back",
-  "value": 3,
-  "effectText": "Vrati se 3 polja."
- },
- {
   "title": "Vučić izgubio izbore",
   "text": "Tetak traži drugi kanal. Na svakom ista vijest.",
   "effect": "cash",
@@ -194,45 +216,103 @@ export const CHANCE = [
   "effectText": "Plati 30 KM banci."
  },
  {
-  "title": "Naši i njihovi",
-  "text": "Za njihove tražiš zatvor. Za svog kažeš da mu je namješteno.",
-  "effect": "cash",
-  "value": -80,
-  "effectText": "Plati 80 KM banci."
- },
- {
-  "title": "Snimljen razgovor",
-  "text": "„Ovo nemoj nikome.” Sutra cijela država sluša.",
-  "effect": "choice",
-  "value": 150,
-  "effectText": "Plati 150 KM ili jedan potez u Zenici."
- },
- {
-  "title": "Građevinska dozvola",
-  "text": "Kuća gotova. Sad da vidimo smije li tu stajat.",
-  "effect": "repairs",
-  "value": 40,
-  "effectText": "Plati 40 KM po nadogradnji."
- },
- {
   "title": "Povrat poreza",
   "text": "Država ti vratila tvoje pare. Osjećaš se kao da si dobio na lotu.",
   "effect": "cash",
   "value": 100,
   "effectText": "Primi 100 KM iz banke."
- },
- {
-  "title": "Pomilovanje",
-  "text": "Izašao prije nego što je mater komšiluku objasnila da si poslovno odsutan.",
-  "effect": "free",
-  "value": 0,
-  "effectText": "Sačuvaj za besplatan izlazak iz Zenice."
  }
+ ,{ "title": "Kava s načelnikom", "text": "Kavu platio ti.", "effect": "mayor", "value": 30, "effectText": "Plati načelniku 30 KM. Ako nema načelnika, ide u bubanj." }
+ ,{ "title": "Bratić iz Austrije", "text": "Došao bratić. Ti plaćaš piće.", "effect": "cash", "value": -30, "effectText": "Plati 30 KM banci." }
 ];
 export const SURPRISE = [
  {
   "title": "Maksuz pozdrav",
   "text": "Baba te maksuz pozdravila.",
+  "effect": "cash",
+  "value": 50,
+  "effectText": "Primi 50 KM iz banke."
+ },
+ {
+  "title": "Večera",
+  "text": "Došao na večeru. Vraćaju te trojica.",
+  "effect": "cash",
+  "value": -60,
+  "effectText": "Plati 60 KM banci."
+ },
+ {
+  "title": "Po kruh",
+  "text": "Otišao po kruh, vratio se s još dvije kese.",
+  "effect": "cash",
+  "value": -80,
+  "effectText": "Plati 80 KM banci."
+ },
+ {
+  "title": "Peče se rakija",
+  "text": "Svaki susjed došao probat. Ostalo pola kanistera.",
+  "effect": "cash",
+  "value": 60,
+  "effectText": "Primi 60 KM iz banke."
+ },
+ {
+  "title": "Degustacija",
+  "text": "Svi kažu da će pomoć. Dođu kad je gotovo, pomoć degustirat.",
+  "effect": "cash",
+  "value": -50,
+  "effectText": "Plati 50 KM banci."
+ },
+ {
+  "title": "Svinjokolja",
+  "text": "Uhvatio se rakije prije noža.",
+  "effect": "cash",
+  "value": -30,
+  "effectText": "Plati 30 KM banci."
+ },
+ {
+  "title": "Koverta",
+  "text": "Mater provjerila u bilježnici koliko su oni dali. Dodaj 50 KM da se ne osramotite.",
+  "effect": "cash",
+  "value": -120,
+  "effectText": "Plati 120 KM banci."
+ },
+ {
+  "title": "Krivo ime",
+  "text": "Pjevač pogriješio ime. Sad naruči opet.",
+  "effect": "cash",
+  "value": -50,
+  "effectText": "Plati 50 KM banci."
+ },
+ {
+  "title": "Patron župe",
+  "text": "Slavi se patron župe. Poslije mise svi već imaju po promil i po.",
+  "effect": "cash",
+  "value": -60,
+  "effectText": "Plati 60 KM banci."
+ },
+ {
+  "title": "Magla",
+  "text": "Pratio svjetla, završio u tuđem dvorištu.",
+  "effect": "back",
+  "value": 3,
+  "effectText": "Vrati se 3 polja."
+ },
+ {
+  "title": "Dojava od rođe",
+  "text": "Rođo javio da će bit 3:2 za nas. Potkupio suca.",
+  "effect": "cash",
+  "value": -40,
+  "effectText": "Plati 40 KM banci."
+ },
+ {
+  "title": "Ko časti?",
+  "text": "Neko viknuo da ti častiš.",
+  "effect": "everyone",
+  "value": 10,
+  "effectText": "Plati svakom igraču 10 KM."
+ },
+ {
+  "title": "Zimska jakna",
+  "text": "Vani 5 stupnjeva. Izvadio zimsku jaknu, a u njoj pedeset maraka.",
   "effect": "cash",
   "value": 50,
   "effectText": "Primi 50 KM iz banke."
@@ -245,81 +325,11 @@ export const SURPRISE = [
   "effectText": "Plati 200 KM ili jedan potez u Zenici."
  },
  {
-  "title": "Hari ili Željo?",
-  "text": "„Dobri su, ali kod nas…” I ručak je službeno propao.",
-  "effect": "duel",
-  "value": 50,
-  "effectText": "Ćevap-duel za 50 KM."
- },
- {
-  "title": "Brajlović",
-  "text": "Naručili za dvoje. Konobar pita gdje će ostali sjest.",
-  "effect": "cash",
-  "value": -60,
-  "effectText": "Plati 60 KM banci."
- },
- {
   "title": "Burek sa sirom",
   "text": "Tražio doručak. Dobio predavanje o nacionalnoj gastronomiji.",
   "effect": "cash",
   "value": -20,
   "effectText": "Plati 20 KM banci."
- },
- {
-  "title": "Bingo",
-  "text": "Ušao po kruh. Na kasi te pitaju treba li dostava.",
-  "effect": "cash",
-  "value": -80,
-  "effectText": "Plati 80 KM banci."
- },
- {
-  "title": "Konzum bodovi",
-  "text": "Skupljao pola godine. Fale dva za tavu koju ne trebaš.",
-  "effect": "cash",
-  "value": -30,
-  "effectText": "Plati 30 KM banci."
- },
- {
-  "title": "Peče se rakija",
-  "text": "Svaki komšija došao provjerit je li dobra. Za prodaju ostalo pola kanistera.",
-  "effect": "cash",
-  "value": 60,
-  "effectText": "Primi 60 KM iz banke."
- },
- {
-  "title": "Pravi se pekmez",
-  "text": "Kupio šljive, šećer, drva i tegle. Baba kaže da je domaće džaba.",
-  "effect": "cash",
-  "value": -50,
-  "effectText": "Plati 50 KM banci."
- },
- {
-  "title": "Svinjokolja",
-  "text": "Došao pomoći. Uhvatio se flaše prije noža. Poslali te po kruh.",
-  "effect": "cash",
-  "value": -30,
-  "effectText": "Plati 30 KM banci."
- },
- {
-  "title": "Ajvar",
-  "text": "Rekli „samo malo paprika”. Tri dana ne osjećaš prste.",
-  "effect": "cash",
-  "value": 80,
-  "effectText": "Primi 80 KM iz banke."
- },
- {
-  "title": "Svadbena koverta",
-  "text": "Mater provjerila koliko su oni vama dali. Dodaj još dvadeset, da se ne priča.",
-  "effect": "cash",
-  "value": -120,
-  "effectText": "Plati 120 KM banci."
- },
- {
-  "title": "Naručio pjesmu",
-  "text": "Pjevač pogrešno izgovorio ime. Sad plaćaš opet da ispravi.",
-  "effect": "cash",
-  "value": -50,
-  "effectText": "Plati 50 KM banci."
  },
  {
   "title": "U Zenicu kada pođem ja…",
@@ -329,45 +339,12 @@ export const SURPRISE = [
   "effectText": "Idi u Zenicu bez naplate Starta."
  },
  {
-  "title": "Treći ključ",
-  "text": "Kupio auto u Novoj Biloj. Dva ključa dobio. Treći se sam dovezao po auto.",
-  "effect": "cash",
-  "value": -100,
-  "effectText": "Plati 100 KM banci."
- },
- {
-  "title": "Sarajevski smog",
-  "text": "Pratio zadnja svjetla. Završio čovjeku u garaži.",
-  "effect": "back",
-  "value": 3,
-  "effectText": "Vrati se 3 polja."
- },
- {
-  "title": "Siguran tiket",
-  "text": "Devet prošlo. Deseti završio 0:0, a ti čekao jedan gol.",
-  "effect": "cash",
-  "value": -40,
-  "effectText": "Plati 40 KM banci."
- },
- {
-  "title": "Rođendan u kafani",
-  "text": "Neko viknuo da častiš. Ti se nasmijao. Konobar shvatio ozbiljno.",
-  "effect": "everyone",
-  "value": 10,
-  "effectText": "Plati svakom igraču 10 KM."
- },
- {
-  "title": "Prahulje šalju",
-  "text": "Krenuo kući s jednom kesom. Sad ti treba pomoć do auta.",
-  "effect": "cash",
-  "value": 80,
-  "effectText": "Primi 80 KM iz banke."
- },
- {
-  "title": "Našao pare u jakni",
-  "text": "Izvadio zimsku jaknu. Prošlogodišnji ti ostavio nešto pametno.",
-  "effect": "cash",
+  "title": "Hari ili Željo?",
+  "text": "Ti navijaš za Harija, a suparnik za Želju. Zna se ko je bolji.",
+  "effect": "duel",
   "value": 50,
-  "effectText": "Primi 50 KM iz banke."
+  "effectText": "Biraš suparnika. Pobjednik nosi 50 KM."
  }
+ ,{ "title": "Didov auto", "text": "Did ti ostavio auto. 380 tisuća kilometara.", "effect": "car", "value": 100, "effectText": "Dobiješ Golfa. Ako već imaš auto, primi 100 KM." }
+ ,{ "title": "Policija na okuci", "text": "Nisu ti mogli ništa nać, al plati 20 KM da te puste.", "effect": "cash", "value": -20, "effectText": "Plati 20 KM banci." }
 ];
