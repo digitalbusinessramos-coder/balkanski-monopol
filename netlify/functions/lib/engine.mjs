@@ -195,15 +195,10 @@ function land(s, p, diceSum) {
     case 'surprise': drawCard(s, p, 'surprise', diceSum); return;
     case 'gotojail': goToJail(s, p); return;
     case 'bet': {
-      if (p.money < RULES.betStake) { log(s, `${p.name} nema ni za tiket.`); return; }
-      p.money -= RULES.betStake;
-      const d = s.rng.int(6) + 1;
-      let res;
-      if (d <= 3) { toPot(s, RULES.betStake); res = 'tiket pao, ulog ide u bubanj'; }
-      else if (d <= 5) { p.money += RULES.betStake; res = 'vraćen ulog'; }
-      else { p.money += RULES.betWin; res = `dobitak ${km(RULES.betWin)}`; }
-      s.lastBet = { n: s.seq + 1, pid: p.id, die: d, res };
-      log(s, `Kladionica: ${p.name} uplatio ${km(RULES.betStake)}, kocka ${d}: ${res}.`);
+      // Kladionica: ko stane zamisli broj od 1 do 5, ostali pogađaju. Kompjuter ništa ne baca.
+      if (active(s).length < 2) return;
+      s.queue.push({ kind: 'betSet', pid: p.id });
+      log(s, `${p.name} je u kladionici.`);
       return;
     }
     case 'free': {
@@ -311,6 +306,24 @@ function elections(s) {
   log(s, `Izbori! Novi načelnik je ${P(s, s.mayor).name}${prev === s.mayor ? ' (opet)' : ''}.`);
 }
 
+function resolveBet(s) {
+  const b = s.bet;
+  if (!b || s.queue.some((q) => q.kind === 'betGuess')) return;
+  const num = s.hidden?.betNum;
+  const host = P(s, b.pid);
+  const results = [];
+  for (const [gid, g] of Object.entries(b.guesses)) {
+    const q = P(s, gid);
+    if (!q || q.bankrupt || g == null) continue;
+    if (g === num) { results.push({ id: gid, g, win: true }); pay(s, host, gid, RULES.betWin, 'kladionica'); }
+    else { results.push({ id: gid, g, win: false }); pay(s, q, host.id, RULES.betStake, 'kladionica'); }
+  }
+  s.lastBet = { n: s.seq + 1, pid: b.pid, num, results };
+  log(s, `Kladionica: ${host.name} zamislio ${num}. ${results.map((r) => `${P(s, r.id).name} rekao ${r.g}${r.win ? ' i pogodio' : ''}`).join(', ') || 'Niko nije igrao'}.`);
+  s.bet = null;
+  if (s.hidden) delete s.hidden.betNum;
+}
+
 function endGame(s, why) {
   s.phase = 'over';
   const ranked = active(s).map((p) => ({ id: p.id, worth: netWorth(s, p.id) })).sort((a, b) => b.worth - a.worth);
@@ -354,6 +367,7 @@ function bankrupt(s, p, toId) {
   p.pardons = []; p.money = 0; p.bankrupt = true; p.inJail = false; p.car = null;
   if (s.mayor === p.id) s.mayor = null;
   s.queue = s.queue.filter((q) => q.pid !== p.id);
+  if (s.bet) { if (s.bet.pid === p.id) { s.bet = null; s.queue = s.queue.filter((q) => q.kind !== 'betGuess'); } else { delete s.bet.guesses[p.id]; resolveBet(s); } }
   for (const q of s.queue) if (q.kind === 'debt' && q.to === p.id) q.to = null;
   if (s.trade && (s.trade.from === p.id || s.trade.to === p.id)) s.trade = null;
   if (s.phase === 'play' && s.turn?.pid === p.id && active(s).length > 1) nextTurn(s);
@@ -576,6 +590,28 @@ export function applyAction(s, pid, a, ctx) {
       s.lastBribe = { n: s.seq + 1, pid: p.id, die: d, caught: d === 1 };
       break;
     }
+    case 'betSet': {
+      needHead(s, p, 'betSet');
+      s.queue.shift();
+      const num = Number(a.num);
+      if (!a.num) { log(s, `${p.name} se ne kladi.`); break; }
+      if (!Number.isInteger(num) || num < 1 || num > 5) { s.queue.unshift({ kind: 'betSet', pid: p.id }); fail('Biraj broj od 1 do 5.'); }
+      s.hidden = { ...(s.hidden || {}), betNum: num };
+      s.bet = { pid: p.id, guesses: {} };
+      const others = active(s).filter((q) => q.id !== p.id);
+      for (const q of others) s.queue.push({ kind: 'betGuess', pid: q.id, by: p.id });
+      log(s, `${p.name} zamislio broj. Ostali pogađaju: pogodak nosi ${km(RULES.betWin)}, promašaj košta ${km(RULES.betStake)}.`);
+      break;
+    }
+    case 'betGuess': {
+      needHead(s, p, 'betGuess');
+      const g = Number(a.num);
+      if (!Number.isInteger(g) || g < 1 || g > 5) fail('Biraj broj od 1 do 5.');
+      s.queue.shift();
+      s.bet.guesses[p.id] = g;
+      resolveBet(s);
+      break;
+    }
     case 'payDebt': {
       const h = needHead(s, p, 'debt');
       if (p.money < h.amount) fail(`Treba ti još ${km(h.amount - p.money)}. Prodaj kućice ili stavi posjed pod hipoteku.`);
@@ -704,6 +740,7 @@ export function applyAction(s, pid, a, ctx) {
         if (q.kind === 'choice') pay(s, tgt, null, q.amount, q.title);
         if (q.kind === 'steal') tgt.money += q.salary;
         if (q.kind === 'bribe') jailNow(s, tgt);
+        if (q.kind === 'betGuess' && s.bet) { s.bet.guesses[tgt.id] = null; resolveBet(s); }
         if (q.kind === 'debt') { s.queue.unshift(q); break; }
       }
       log(s, `${tgt.name} je odsutan, potez je preskočen.`);
@@ -717,6 +754,6 @@ export function applyAction(s, pid, a, ctx) {
 
 // Stanje koje se šalje pregledniku: bez tajnih tokena.
 export function publicState(s) {
-  const { secrets, seen, ...rest } = s;
+  const { secrets, seen, hidden, ...rest } = s;
   return rest;
 }

@@ -59,6 +59,16 @@ const CARD_ILL = {
   'Bosna ulazi u EU': 'vlak', 'Vikendica': 'kljucevi',
 };
 
+// Ikone auta (u boji, da se razlikuju na ploči i kod igrača).
+const carSVG = (body, col) => `<svg viewBox="0 0 32 32">${body.replaceAll('$C', col)}</svg>`;
+const W = (x) => `<circle cx="${x}" cy="23" r="3.6" fill="#222" stroke="#fff" stroke-width="1"/>`;
+export const CAR_IC = {
+  golf: carSVG(`<path d="M3 22v-5l3-1 4-6h11l5 6 3 1v5z" fill="$C" stroke="#141414" stroke-width="1.4" stroke-linejoin="round"/><path d="M11 11h9l3 5H9z" fill="#cfe8ff" stroke="#141414"/>${W(9)}${W(23)}`, '#d2242a'),
+  passat: carSVG(`<path d="M2 22v-5l3-1 3-6h17l3 6v6z" fill="$C" stroke="#141414" stroke-width="1.4" stroke-linejoin="round"/><path d="M9 11h15l2 5H7z" fill="#cfe8ff" stroke="#141414"/>${W(8)}${W(24)}`, '#1f4fa3'),
+  mercedes: carSVG(`<path d="M2 22v-4l5-2 4-5h10l5 5 4 1v5z" fill="$C" stroke="#141414" stroke-width="1.4" stroke-linejoin="round"/><path d="M12 12h8l3 4H10z" fill="#cfe8ff" stroke="#141414"/><circle cx="29" cy="19" r="1.6" fill="#ddd" stroke="#141414" stroke-width=".6"/>${W(8)}${W(24)}`, '#2b2b2b'),
+  traktor: carSVG(`<path d="M4 21v-6h9l2-6h7v6h5v6z" fill="$C" stroke="#141414" stroke-width="1.4" stroke-linejoin="round"/><path d="M16 10h5v5h-5z" fill="#cfe8ff" stroke="#141414"/><path d="M24 9v6" stroke="#141414" stroke-width="1.6"/><circle cx="10" cy="22" r="6" fill="#222" stroke="#fff"/><circle cx="25" cy="24" r="4" fill="#222" stroke="#fff"/>`, '#1f9a4b'),
+};
+
 export function pos(i){ // red, stupac, rotacija
  if(i===0)return[11,11,0]; if(i<10)return[11,11-i,0]; if(i===10)return[11,1,0];
  if(i<20)return[11-(i-10),1,90]; if(i===20)return[1,1,0]; if(i<30)return[1,1+(i-20),180];
@@ -83,7 +93,7 @@ export function cellHTML(f, i) {
  else if(k==='st') h=`<div class="nm">${n.replace('Stanica ','Stanica<br>')}</div><div class="ico">${IC.train}</div><div class="pr">${km(b)}</div>`;
  else if(k==='u') h=`<div class="nm">${n}</div><div class="ico sm">${IC[a]}</div><div class="pr">${km(b)}</div>`;
  else if(k==='tax') h=`<div class="nm">${n}</div><div class="ico sm">${IC[a]}</div><div class="pr">${b}</div>`;
- else if(k==='bet') h=`<div class="nm">${n}</div><div class="ico sm">${IC.ili.kocka}</div><div class="pr">Tiket ${km(f.amount)}</div>`;
+ else if(k==='bet') h=`<div class="nm">${n}</div><div class="ico sm">${IC.ili.kocka}</div><div class="pr">Pogodi broj</div>`;
  else if(k==='s') h=`<div class="nm">Šansa</div><div style="font:900 56px/1 var(--f-board);color:var(--red);-webkit-text-stroke:1.5px #141414;margin-top:8px">?</div>`;
  else if(k==='i') h=`<div class="nm">Iznenađenje</div><div class="ico">${IC.box}</div>`;
  else if(k==='start') h=`<div class="small">Prolaziš i primaš ${km(RULES.passStart)}</div><div class="big" style="font-size:22px">Legla<br>plata</div><svg viewBox="0 0 90 30" width="84" height="28"><path d="M86 15H16M28 3 12 15l16 12" fill="none" stroke="#d2242a" stroke-width="7" stroke-linejoin="round"/></svg>`;
@@ -239,7 +249,7 @@ function fieldInfo(pos) {
   const f = FIELDS[pos];
   return {
     start: `Kad prođeš Start, primaš ${km(RULES.passStart)}. Ako staneš baš na Start, duplo: ${km(RULES.passStart * 2)}.`,
-    bet: `Uplatiš ${km(RULES.betStake)} i baciš kocku: 1 do 3 tiket pao, 4 ili 5 vraćen ulog, 6 dobitak ${km(RULES.betWin)}.`,
+    bet: `Ko stane, zamisli broj od 1 do 5, a ostali pogađaju. Ko pogodi, dobija ${km(RULES.betWin)} od njega. Ko promaši, plaća mu ${km(RULES.betStake)}.`,
     tax: `Plaćaš ${km(f.amount || 0)} banci.`,
     chance: 'Izvlačiš kartu Šanse.', surprise: 'Izvlačiš kartu Iznenađenja.',
     jail: `„U Zenicu kada pođem ja…” Ako samo prolaziš, u posjeti si. Izlaz: duple kockice, vikendica ili ${km(RULES.jailFine)}.`,

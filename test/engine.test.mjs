@@ -447,15 +447,29 @@ test('načelnik: tek od 3 igrača, izbori svakih 5 krugova, članarina na Startu
   assert.equal(P(s, 'p2').money, m2 + RULES.mayorFee);
 });
 
-test('kladionica: 1-3 gubi, 4-5 vraća ulog, 6 dobija 150', () => {
-  for (const [d, diff] of [[2, -50], [5, 0], [6, 100]]) {
-    const s = game();
-    P(s, 'p0').pos = 33;
-    const m = P(s, 'p0').money;
-    act(s, 'p0', { type: 'roll' }, [2, 3, d]); // 38 Kladionica
-    assert.equal(FIELDS[38].name, 'Kladionica');
-    assert.equal(P(s, 'p0').money, m + diff);
-  }
+test('kladionica: jedan zamisli broj, ostali pogađaju, broj se ne vidi', async () => {
+  const { publicState } = await import('../netlify/functions/lib/engine.mjs');
+  const s = game(3);
+  P(s, 'p0').pos = 33;
+  act(s, 'p0', { type: 'roll' }, [2, 3]); // 38 Kladionica
+  assert.equal(FIELDS[38].name, 'Kladionica');
+  assert.equal(s.queue[0].kind, 'betSet');
+  act(s, 'p0', { type: 'betSet', num: 4 });
+  assert.ok(!JSON.stringify(publicState(s)).includes('betNum'));
+  assert.equal(s.queue[0].kind, 'betGuess');
+  const [m0, m1, m2] = ['p0', 'p1', 'p2'].map((id) => P(s, id).money);
+  act(s, 'p1', { type: 'betGuess', num: 4 });
+  assert.equal(P(s, 'p1').money, m1); // čeka se i drugi
+  act(s, 'p2', { type: 'betGuess', num: 2 });
+  assert.equal(P(s, 'p1').money, m1 + RULES.betWin);
+  assert.equal(P(s, 'p2').money, m2 - RULES.betStake);
+  assert.equal(P(s, 'p0').money, m0 - RULES.betWin + RULES.betStake);
+  assert.equal(s.lastBet.num, 4);
+  const s2 = game();
+  P(s2, 'p0').pos = 33;
+  act(s2, 'p0', { type: 'roll' }, [2, 3]);
+  act(s2, 'p0', { type: 'betSet' });
+  assert.equal(s2.queue.length, 0);
 });
 
 test('Didov auto daje Golfa, a ko već ima auto dobija 100 KM', () => {
