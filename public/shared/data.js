@@ -108,7 +108,7 @@ export const FIGURES = [
 ];
 export const PLAYER_COLORS = ['#1f4fa3', '#d2242a', '#1f9a4b', '#8e44ad', '#e67e22', '#16a3a3'];
 
-// Kartice: 18 Šansi i 19 Iznenađenja.
+// Kartice: 19 Šansi i 19 Iznenađenja.
 export const CHANCE = [
  {
   "title": "Diploma",
@@ -223,6 +223,7 @@ export const CHANCE = [
   "effectText": "Primi 100 KM iz banke."
  }
  ,{ "title": "Kava s načelnikom", "text": "Kavu platio ti.", "effect": "mayor", "value": 30, "effectText": "Plati načelniku 30 KM. Ako nema načelnika, ide u bubanj." }
+ ,{ "title": "Kašika u med", "text": "Upala ti kašika u med.", "effect": "cash", "value": 100, "effectText": "Primi 100 KM iz banke." }
  ,{ "title": "Bratić iz Austrije", "text": "Došao bratić. Ti plaćaš piće.", "effect": "cash", "value": -30, "effectText": "Plati 30 KM banci." }
 ];
 export const SURPRISE = [

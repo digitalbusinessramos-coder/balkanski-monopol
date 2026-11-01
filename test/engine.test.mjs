@@ -26,8 +26,8 @@ const setDeck = (s, deck, idx) => { s.decks[deck] = [idx, ...s.decks[deck].filte
 const ci = (t) => CHANCE.findIndex((c) => c.title === t);
 const si = (t) => SURPRISE.findIndex((c) => c.title === t);
 
-test('18 Šansi i 19 Iznenađenja, bez dugih crtica, bez starih karata', () => {
-  assert.equal(CHANCE.length, 18);
+test('19 Šansi i 19 Iznenađenja, bez dugih crtica, bez starih karata', () => {
+  assert.equal(CHANCE.length, 19);
   assert.equal(SURPRISE.length, 19);
   const all = JSON.stringify([CHANCE, SURPRISE, FIELDS]);
   assert.ok(!all.includes('\u2014'));

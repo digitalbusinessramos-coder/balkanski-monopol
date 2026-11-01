@@ -69,6 +69,30 @@ export const CAR_IC = {
   traktor: carSVG(`<path d="M4 21v-6h9l2-6h7v6h5v6z" fill="$C" stroke="#141414" stroke-width="1.4" stroke-linejoin="round"/><path d="M16 10h5v5h-5z" fill="#cfe8ff" stroke="#141414"/><path d="M24 9v6" stroke="#141414" stroke-width="1.6"/><circle cx="10" cy="22" r="6" fill="#222" stroke="#fff"/><circle cx="25" cy="24" r="4" fill="#222" stroke="#fff"/>`, '#1f9a4b'),
 };
 
+// Naše pare: crtane novčanice i kovanice u bojama KM (nisu kopije pravih).
+export const NOTES = [
+  { v: 200, bg: '#3f6fb5', dk: '#1f3f7a' },
+  { v: 100, bg: '#9a6a3a', dk: '#5e3a18' },
+  { v: 50, bg: '#9a5aa8', dk: '#5c2a6a' },
+  { v: 20, bg: '#c9822f', dk: '#7a4612' },
+  { v: 10, bg: '#5d9a6a', dk: '#2e5c38' },
+];
+export const COINS = [5, 2, 1];
+export function noteSVG(v) {
+  const n = NOTES.find((x) => x.v === v);
+  if (!n) {
+    return `<svg class="coin" viewBox="0 0 32 32"><circle cx="16" cy="16" r="14" fill="${v === 5 ? '#d9b44a' : '#c9ccd1'}" stroke="#141414" stroke-width="1.6"/><circle cx="16" cy="16" r="10.5" fill="none" stroke="#141414" stroke-width=".8" opacity=".5"/><text x="16" y="19.5" text-anchor="middle" font-family="'League Spartan',sans-serif" font-weight="900" font-size="11" fill="#141414">${v}</text></svg>`;
+  }
+  return `<svg class="note" viewBox="0 0 72 36"><rect x="1" y="1" width="70" height="34" rx="3" fill="${n.bg}" stroke="#141414" stroke-width="1.6"/><rect x="5" y="5" width="62" height="26" rx="2" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="1"/><circle cx="52" cy="18" r="9" fill="#fff" fill-opacity=".85" stroke="${n.dk}" stroke-width="1"/><path d="M47 22l2-8 3 5 3-5 2 8" fill="none" stroke="${n.dk}" stroke-width="1.4" stroke-linejoin="round"/><text x="9" y="17" font-family="'League Spartan',sans-serif" font-weight="900" font-size="13" fill="#fff" stroke="${n.dk}" stroke-width=".6" paint-order="stroke">${v}</text><text x="9" y="28" font-family="'League Spartan',sans-serif" font-weight="800" font-size="7" letter-spacing="1" fill="#fff">KM</text><path d="M28 9v18M31 9v18" stroke="#fff" stroke-opacity=".35" stroke-width="1"/></svg>`;
+}
+// Rastavi iznos na novčanice i kovanice.
+export function breakdown(amount) {
+  let a = Math.max(0, Math.round(Math.abs(amount)));
+  const out = [];
+  for (const v of [...NOTES.map((n) => n.v), ...COINS]) { const k = Math.floor(a / v); if (k) { out.push([v, k]); a -= k * v; } }
+  return out;
+}
+
 export function pos(i){ // red, stupac, rotacija
  if(i===0)return[11,11,0]; if(i<10)return[11,11-i,0]; if(i===10)return[11,1,0];
  if(i<20)return[11-(i-10),1,90]; if(i===20)return[1,1,0]; if(i<30)return[1,1+(i-20),180];
@@ -94,7 +118,7 @@ export function cellHTML(f, i) {
  else if(k==='u') h=`<div class="nm">${n}</div><div class="ico sm">${IC[a]}</div><div class="pr">${km(b)}</div>`;
  else if(k==='tax') h=`<div class="nm">${n}</div><div class="ico sm">${IC[a]}</div><div class="pr">${b}</div>`;
  else if(k==='bet') h=`<div class="nm">${n}</div><div class="ico sm">${IC.ili.kocka}</div><div class="pr">Pogodi broj</div>`;
- else if(k==='s') h=`<div class="nm">Šansa</div><div style="font:900 56px/1 var(--f-board);color:var(--red);-webkit-text-stroke:1.5px #141414;margin-top:8px">?</div>`;
+ else if(k==='s') h=`<div class="nm">Šansa</div><div class="ico q-ico" style="font:900 56px/1 var(--f-board);color:var(--red);-webkit-text-stroke:1.5px #141414;margin-top:8px">?</div>`;
  else if(k==='i') h=`<div class="nm">Iznenađenje</div><div class="ico">${IC.box}</div>`;
  else if(k==='start') h=`<div class="small">Prolaziš i primaš ${km(RULES.passStart)}</div><div class="big" style="font-size:22px">Legla<br>plata</div><svg viewBox="0 0 90 30" width="84" height="28"><path d="M86 15H16M28 3 12 15l16 12" fill="none" stroke="#d2242a" stroke-width="7" stroke-linejoin="round"/></svg>`;
  else if(k==='jail') h=`<div style="display:grid;grid-template-columns:30px 1fr;width:117px;height:117px"><div style="grid-row:1/3;display:flex;align-items:center;justify-content:center;border-right:1px solid #141414"><span style="transform:rotate(90deg);font:700 10px var(--f-board);white-space:nowrap;letter-spacing:.1em">SAMO U POSJETI</span></div><div style="background:#f08a24;border-bottom:1px solid #141414;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;height:87px;box-sizing:border-box"><span class="big" style="font-size:13px">KP dom<br>Zenica</span><svg viewBox="0 0 40 30" width="40" height="28"><rect x="2" y="2" width="36" height="26" fill="#fff" stroke="#141414" stroke-width="2"/><path d="M10 2v26M18 2v26M26 2v26M33 2v26" stroke="#141414" stroke-width="2.4"/></svg></div><div class="small" style="font-size:8.5px;display:flex;align-items:center;justify-content:center;font-style:italic;padding:0 2px">„U Zenicu kada pođem ja…”</div></div>`;

@@ -1,6 +1,6 @@
 // Klijent: prikazuje stanje sa servera i šalje radnje. Sva pravila provjerava server.
 import { FIELDS, RULES, HOUSE_COST, GROUP_COLOR, FIGURES, GAME_NAME, CHANCE, SURPRISE, groupOf, CARS, carById } from './shared/data.js';
-import { IC, TOK, CAR_IC, km, esc, pos, cellHTML, centerArt, dieHTML, cardHTML, backHTML, deedHTML } from './board.js';
+import { IC, TOK, CAR_IC, noteSVG, breakdown, km, esc, pos, cellHTML, centerArt, dieHTML, cardHTML, backHTML, deedHTML } from './board.js';
 
 const $ = (sel, el = document) => el.querySelector(sel);
 const app = $('#app');
@@ -331,7 +331,9 @@ function buildBoard() {
     d.dataset.pos = i;
     d.style.gridRow = r; d.style.gridColumn = c;
     d.setAttribute('aria-label', f.name);
-    d.innerHTML = `<div class="inner" style="--r:${corner ? 0 : rot}deg">${cellHTML(f, i)}<div class="owner"></div><div class="mort" hidden>HIPOTEKA</div></div>`;
+    // Sva polja se čitaju uspravno: gornji red bez okretanja, bočna polja vodoravno.
+    const side = corner ? '' : { 90: ' side-l', '-90': ' side-r', 180: ' top' }[rot] || '';
+    d.innerHTML = `<div class="inner${side}">${cellHTML(f, i)}<div class="owner"></div><div class="mort" hidden>HIPOTEKA</div></div>`;
     d.addEventListener('click', () => openField(i));
     el.appendChild(d);
   });
@@ -493,8 +495,27 @@ function maybeAutoModal() {
   void key;
 }
 
+// Kad se tebi promijeni lova, iskoče novčanice.
+function moneyFlash(diff) {
+  let el = $('#cash');
+  if (!el) { el = document.createElement('div'); el.id = 'cash'; document.body.appendChild(el); }
+  const parts = breakdown(diff).slice(0, 4).map(([v, k]) => `<span class="cash-n">${noteSVG(v)}${k > 1 ? `<b>×${k}</b>` : ''}</span>`).join('');
+  el.className = diff > 0 ? 'plus' : 'minus';
+  el.innerHTML = `<div class="cash-amt">${diff > 0 ? '+' : '−'}${km(Math.abs(diff))}</div><div class="cash-row">${parts}</div>`;
+  el.hidden = false;
+  el.style.animation = 'none'; void el.offsetWidth; el.style.animation = '';
+  clearTimeout(moneyFlash.t); moneyFlash.t = setTimeout(() => { el.hidden = true; }, 2600);
+}
+
+function walletHTML(money) {
+  return `<span class="wallet" title="Novčanik">${breakdown(money).map(([v, k]) => `<span class="w-n">${noteSVG(v)}<b>${k}</b></span>`).join('')}</span>`;
+}
+
 function renderPlayers() {
   const st = S.state;
+  const mine = P(S.me);
+  if (mine && S.lastMoney != null && mine.money !== S.lastMoney && st.phase === 'play') moneyFlash(mine.money - S.lastMoney);
+  S.lastMoney = mine ? mine.money : null;
   $('#players').innerHTML = st.players.map((p) => {
     const props = ownedBy(p.id).sort((a, b) => a - b);
     const away = !p.bankrupt && now() - (S.presence[p.id] || 0) > SKIP_MS;
@@ -504,6 +525,7 @@ function renderPlayers() {
       <span class="n" style="color:${p.color}">${esc(p.name)}</span>
       <span class="m">${p.bankrupt ? 'bankrot' : km(p.money)}</span>
       <span class="props">${props.map((i) => `<span title="${esc(FIELDS[i].name)}" style="background:${FIELDS[i].group ? GROUP_COLOR[FIELDS[i].group] : '#fff'}${st.owners[i].mortgaged ? ';opacity:.35' : ''}"></span>`).join('')}</span>
+      ${p.id === S.me && !p.bankrupt ? walletHTML(p.money) : ''}
       ${p.car ? `<span class="pcar" title="${esc(carById(p.car).name)}">${CAR_IC[p.car]}<b>${esc(carById(p.car).name)}</b></span>` : ''}
       ${tags.length ? `<span class="ptags">${tags.map(esc).join(' · ')}</span>` : ''}
     </div>`;

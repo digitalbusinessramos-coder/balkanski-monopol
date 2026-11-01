@@ -290,3 +290,37 @@ button{font:inherit;color:inherit}
 /* birtija na traci polja: krigla piva */
 .bar{width:14px;height:15px;background:#f2b705;border:2px solid #141414;border-top:4px solid #fff;border-radius:1px 1px 3px 3px;position:relative;box-sizing:border-box}
 .bar::after{content:'';position:absolute;right:-7px;top:2px;width:5px;height:6px;border:2px solid #141414;border-left:0;border-radius:0 4px 4px 0}
+
+/* Uspravna polja: gornji red se ne okreće naglavačke, bočna polja su vodoravna. */
+.inner.top{flex-direction:column-reverse}
+.inner.top .band{border-bottom:0;border-top:1px solid var(--line)}
+.inner.top .nm{margin-top:0;margin-bottom:6px}
+.inner.top .pr{margin-bottom:0;margin-top:6px}
+.inner.side-l,.inner.side-r{width:117px;height:74px;display:grid;align-items:center;justify-items:center;grid-template-rows:auto 1fr;row-gap:2px;padding:4px 0 8px}
+.inner.side-l{grid-template-columns:40px 1fr 20px;grid-template-areas:"nm nm band" "ico pr band"}
+.inner.side-r{grid-template-columns:20px 40px 1fr;grid-template-areas:"band nm nm" "band ico pr"}
+.inner.side-l>.nm,.inner.side-r>.nm{grid-area:nm;margin:0;padding:0 4px;align-self:start}
+.inner.side-l>.ico,.inner.side-r>.ico,.inner.side-l>.cty,.inner.side-r>.cty{grid-area:ico;width:30px;height:30px;margin:0}
+.inner.side-l>.pr,.inner.side-r>.pr{grid-area:pr;margin:0}
+.inner.side-l>.band,.inner.side-r>.band{grid-area:band;width:20px;height:100%;align-self:stretch;flex-direction:column;border-bottom:0;margin:-4px 0 -8px}
+.inner.side-l>.band{border-left:1px solid var(--line)}
+.inner.side-r>.band{border-right:1px solid var(--line)}
+.inner.side-l .q-ico,.inner.side-r .q-ico{font-size:34px!important;margin:0!important;display:flex;align-items:center;justify-content:center}
+.inner.side-l .house,.inner.side-r .house{transform:scale(.8)}
+
+/* naše pare */
+.pl .wallet{grid-column:2/4;display:flex;flex-wrap:wrap;gap:4px 6px;margin-top:-4px}
+.w-n{display:inline-flex;align-items:center;gap:2px;font-size:11px}
+.w-n .note{width:30px;height:15px}
+.w-n .coin{width:14px;height:14px}
+#cash{position:fixed;left:50%;top:84px;transform:translateX(-50%);z-index:55;background:#fff;border:2px solid #141414;box-shadow:4px 4px 0 rgba(0,0,0,.25);padding:8px 14px;text-align:center;pointer-events:none;animation:cashIn .35s ease-out}
+#cash[hidden]{display:none}
+#cash .cash-amt{font:900 22px var(--f-board)}
+#cash.plus .cash-amt{color:#1f8f3a}
+#cash.minus .cash-amt{color:var(--red)}
+#cash .cash-row{display:flex;gap:6px;justify-content:center;align-items:center;margin-top:4px}
+#cash .cash-n{display:inline-flex;align-items:center;gap:2px;font-size:12px}
+#cash .note{width:64px;height:32px}
+#cash .coin{width:24px;height:24px}
+@keyframes cashIn{from{transform:translate(-50%,-14px);opacity:0}to{transform:translate(-50%,0);opacity:1}}
+@media (prefers-reduced-motion:reduce){#cash{animation:none}}
