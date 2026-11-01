@@ -243,10 +243,11 @@ function drawCard(s, p, deck, diceSum) {
       s.queue.push({ kind: 'choice', pid: p.id, amount: c.value, title: c.title });
       break;
     case 'repairs': {
-      let lv = 0;
-      for (const o of Object.values(s.owners)) if (o.owner === p.id) lv += o.level;
-      const amt = lv * RULES.repairPerLevel;
-      log(s, lv ? `${p.name} ima ${lv} nadogradnji i plaća ${km(amt)}.` : `${p.name} nema nadogradnji, ništa ne plaća.`);
+      // Majstori: po kućici jedno, po hotelu ili birtiji više. Bogati plaćaju najviše.
+      let houses = 0, hotels = 0;
+      for (const o of Object.values(s.owners)) if (o.owner === p.id) { if (o.level === 5) hotels += 1; else houses += o.level; }
+      const amt = houses * c.value + hotels * (c.hotel ?? c.value * 5);
+      log(s, houses || hotels ? `${p.name} ima ${houses} kućica i ${hotels} hotela/birtija i plaća majstorima ${km(amt)}.` : `${p.name} nema nadogradnji, ništa ne plaća.`);
       pay(s, p, null, amt, c.title);
       break;
     }

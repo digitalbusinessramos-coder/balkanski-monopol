@@ -332,8 +332,9 @@ function buildBoard() {
     d.style.gridRow = r; d.style.gridColumn = c;
     d.setAttribute('aria-label', f.name);
     // Sva polja se čitaju uspravno: gornji red bez okretanja, bočna polja vodoravno.
-    const side = corner ? '' : { 90: ' side-l', '-90': ' side-r', 180: ' top' }[rot] || '';
-    d.innerHTML = `<div class="inner${side}">${cellHTML(f, i)}<div class="owner"></div><div class="mort" hidden>HIPOTEKA</div></div>`;
+    // Gornji red se čita uspravno, bočna polja ostaju okrenuta kao prije.
+    const top = !corner && rot === 180;
+    d.innerHTML = `<div class="inner${top ? ' top' : ''}" style="--r:${corner || top ? 0 : rot}deg">${cellHTML(f, i)}<div class="owner"></div><div class="mort" hidden>HIPOTEKA</div></div>`;
     d.addEventListener('click', () => openField(i));
     el.appendChild(d);
   });
@@ -795,7 +796,7 @@ function openRules() {
   <h3>Mito</h3><p>Kad trebaš u Zenicu (polje, kartica ili tri duple), možeš podmitit s ${km(RULES.bribe)} i ostat vani. Mito ide načelniku, a bez načelnika u bubanj. Ako padne 1, mito je otkriven: pare idu u bubanj, a ti u Zenicu. Načelnik ne može podmitit sam sebe.</p>
   <h3>Kladionica</h3><p>Ko stane, zamisli broj od 1 do 5 (ili se ne kladi). Svi ostali pogađaju. Ko pogodi, dobija ${km(RULES.betWin)} od njega, a ko promaši, plaća mu ${km(RULES.betStake)}. Kompjuter ne baca ništa, broj se ne vidi dok svi ne pogode.</p>
   <h3>Kod babe</h3><p>Sve što se plaća banci (porezi, kartice, kazne i izlazak iz Zenice) ide baki u bubanj. Ko stane na polje Kod babe, pokupi cijeli bubanj. Koliko je unutra piše gore pored kruga.</p>
-  <h3>Kartice</h3><p>Dobici idu iz banke, a plaćanja baki u bubanj, osim kad kartica kaže drugačije. „Bosna ulazi u EU” vodi na sljedeću stanicu naprijed, uz platu ako prođeš Start. Kartice koje vraćaju unazad ne plaćaju Start. „Majstor”: 40 KM po nadogradnji (hotel i birtija se broje kao pet). „Ko časti?”: 10 KM svakom drugom igraču u igri. „Hari ili Željo?”: biraš suparnika, ti si za Harija, on za Želju. Hari uvijek dobija, osim svakog trećeg kruga. Pobjednik nosi 50 KM. „Vikendica” čuvaš dok ti ne zatreba za izlazak iz Zenice.</p>
+  <h3>Kartice</h3><p>Dobici idu iz banke, a plaćanja baki u bubanj, osim kad kartica kaže drugačije. „Bosna ulazi u EU” vodi na sljedeću stanicu naprijed, uz platu ako prođeš Start. Kartice koje vraćaju unazad ne plaćaju Start. „Majstor”: 40 KM po kućici i 115 KM po hotelu ili birtiji. „Ko časti?”: 10 KM svakom drugom igraču u igri. „Hari ili Željo?”: biraš suparnika, ti si za Harija, on za Želju. Hari uvijek dobija, osim svakog trećeg kruga. Pobjednik nosi 50 KM. „Vikendica” čuvaš dok ti ne zatreba za izlazak iz Zenice.</p>
   <h3>Kraj partije</h3><p><b>Brza:</b> nakon ${RULES.fastRounds} punih krugova oko stola pobjeđuje najveća imovina (gotovina, posjedi po kupovnoj cijeni ili pola ako su pod hipotekom, i nadogradnje po cijeni gradnje). <b>Klasična:</b> pobjeđuje zadnji igrač koji nije bankrotirao.</p>
   <h3>Ako neko ode</h3><p>Ako igrač na kojeg se čeka nije aktivan 1 minutu, drugi ga mogu preskočiti (ne kupuje, a kod kartica s izborom plaća). Nakon 2 minute ga mogu izbaciti, a njegova imovina ide banci ili vjerovniku. Ko osvježi stranicu ili izgubi vezu, vraća se preko istog linka na istom uređaju.</p>
   <h3>Napomena</h3><p>Sav novac je igraći. Satirične kartice su izmišljene situacije, a ne vijesti ni izjave stvarnih osoba.</p>

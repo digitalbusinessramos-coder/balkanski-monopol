@@ -26,9 +26,9 @@ const setDeck = (s, deck, idx) => { s.decks[deck] = [idx, ...s.decks[deck].filte
 const ci = (t) => CHANCE.findIndex((c) => c.title === t);
 const si = (t) => SURPRISE.findIndex((c) => c.title === t);
 
-test('19 Šansi i 19 Iznenađenja, bez dugih crtica, bez starih karata', () => {
+test('19 Šansi i 20 Iznenađenja, bez dugih crtica, bez starih karata', () => {
   assert.equal(CHANCE.length, 19);
-  assert.equal(SURPRISE.length, 19);
+  assert.equal(SURPRISE.length, 20);
   const all = JSON.stringify([CHANCE, SURPRISE, FIELDS]);
   assert.ok(!all.includes('\u2014'));
   assert.ok(!all.includes('Treći ključ'));
@@ -237,7 +237,7 @@ test('Hari ili Željo: Hari uvijek dobija, osim svakog trećeg kruga', () => {
   assert.equal(P(s2, 'p1').money, RULES.startMoney + 50);
 });
 
-test('Majstor: 40 KM po nadogradnji, hotel je pet', () => {
+test('Majstor: 40 KM po kućici, 115 KM po hotelu', () => {
   const s = game();
   s.owners[1] = { owner: 'p0', level: 5, mortgaged: false };
   s.owners[3] = { owner: 'p0', level: 2, mortgaged: false };
@@ -246,7 +246,7 @@ test('Majstor: 40 KM po nadogradnji, hotel je pet', () => {
   P(s, 'p0').pos = 4;
   const m = P(s, 'p0').money;
   act(s, 'p0', { type: 'roll' }, [1, 2]);
-  assert.equal(P(s, 'p0').money, m - 7 * 40);
+  assert.equal(P(s, 'p0').money, m - (2 * 40 + 115));
 });
 
 test('Ko časti?: 10 KM svakom drugom aktivnom igraču', () => {
